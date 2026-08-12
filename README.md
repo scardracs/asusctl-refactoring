@@ -16,7 +16,7 @@ Historically, `asusctl` accumulated custom user-space driver routines (raw WMI c
 Because upstreaming kernel patches and migrating to new kernel drivers (e.g. `asus-armoury`, `asus-wmi`) is a long-term process tied to kernel release cycles, this refactoring plan adopts a **pragmatic two-track strategy**:
 
 1. **Immediate User-Space Refactoring & Optimization**: Modernize daemon internals right now — eliminate nested `Arc<Mutex<...>>` locks via Tokio actors to fix D-Bus deadlocks, decouple code into a clean 3-layer architecture, streamline dependencies, migrate tooling to native Cargo workspace lints, and introduce `sysfs` provider traits for non-root CI testing.
-2. **Progressive Kernel Offloading**: Opportunistically delegate low-level hardware driving to Linux kernel modules (`asus-wmi`, `asus-armoury`, `hid-asus`, `/sys/class/firmware_attributes/`) as modern kernel versions (6.19+) become widespread, keeping user-space fallback adapters modular.
+2. **Progressive Kernel Offloading**: Opportunistically delegate low-level hardware driving to Linux kernel modules (`asus-wmi`, `asus-armoury`, `hid-asus`, `/sys/class/firmware_attributes/`) as modern kernel versions (7.0+) become widespread, keeping user-space fallback adapters modular.
 
 ---
 
