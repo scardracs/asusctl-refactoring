@@ -185,7 +185,7 @@ Before undertaking major refactorings, empirical baseline metrics must be record
 * **CLI Framework (`asusctl`)**: Migrate from `argh` to `clap` (v4 with derive) for improved subcommands, value validation, interactive table rendering (`tabled`), shell completions (`clap_complete`), and man pages.
 * **Enum Conversions (`strum`)**: Apply `strum` to purely syntactic string-to-enum conversions (e.g. `AuraModeNum`).
 * **Hardware Capability Flags (`bitflags`)**: Replace raw capability integers and boolean flags with strongly-typed `bitflags` structs for keyboard lighting zones and power modes.
-* **Procfs Reading (`rog-platform`)**: Sostituire la scansione manuale delle stringhe in `/proc/` con `procfs` per la lettura di info CPU e termiche.
+* **Procfs Reading (`rog-platform`)**: Replace manual string parsing loops in `/proc/` with `procfs` for reading CPU and thermal information.
 
 ### 3.5 Strongly-Typed Domain Error Hierarchy (`thiserror` v2 Uniformity)
 
@@ -251,5 +251,5 @@ When refactoring daemon components, the following architectural patterns must be
 | **`bitflags`** | 🟢 **APPROVED (Targeted)** | 🟠 **P1** | Typed bitmasks for hardware capability zones and power features. |
 | **`tracing`** | 🟢 **APPROVED (Phased)** | 🟡 **P2** | Structured async tracing for D-Bus requests, udev, and state transitions. |
 | **`tabled`** | ⚪ **OPTIONAL UX** | 🟡 **P2** | Formatted table output for `asusctl` CLI status commands. |
-| **`procfs`** | ⚪ **TARGETED** | 🟡 **P2** | Sostituisce il parsing manuale di `/proc/` in `rog-platform` per CPU/termica. |
-| **`tokio-util`** | ⚪ **TARGETED** | 🟡 **P2** | `CancellationToken` per cancellazione task durante hot-unplug e reload. |
+| **`procfs`** | ⚪ **TARGETED** | 🟡 **P2** | Replaces manual `/proc/` string parsing in `rog-platform` for CPU/thermal info. |
+| **`tokio-util`** | ⚪ **TARGETED** | 🟡 **P2** | `CancellationToken` for clean task cancellation during device hot-unplug and reload. |
