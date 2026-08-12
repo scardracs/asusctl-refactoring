@@ -37,50 +37,50 @@ All refactoring tasks and PRs must strictly comply with the following invariants
 ## 🗺️ Implementation Roadmap
 
 ```text
-┌────────────────────────────────────────────────────────────────────────┐
-│ Phase 0: Baseline Benchmark Harness & Environment Setup                │
-├────────────────────────────────────────────────────────────────────────┤
-│  ├── 0.1 Reproducible Profiling Protocol (Build time, .text size, RSS) │
-│  └── 0.2 Workspace MSRV 1.85 Migration Target Setup                    │
-└───────────────────────────────────┬────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Phase 0: Baseline Benchmark Harness & Environment Setup                  │
+├──────────────────────────────────────────────────────────────────────────┤
+│  ├── 0.1 Reproducible Profiling Protocol (Build time, .text size, RSS)   │
+│  └── 0.2 Workspace MSRV 1.85 Migration Target Setup                      │
+└───────────────────────────────────┬──────────────────────────────────────┘
                                     │
                                     ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ Phase 1: Immediate User-Space Concurrency & Tooling Modernization      │
-├────────────────────────────────────────────────────────────────────────┤
-│  ├── 1.1 State Architecture: Actor Model (Lock Elimination)            │
-│  ├── 1.2 Tooling Modernization: Cranky.toml -> Native [workspace.lints]│
-│  └── 1.3 Git Hook Infrastructure: cargo-husky -> Native .githooks      │
-└───────────────────────────────────┬────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Phase 1: Immediate User-Space Concurrency & Tooling Modernization        │
+├──────────────────────────────────────────────────────────────────────────┤
+│  ├── 1.1 State Architecture: Actor Model (Lock Elimination)              │
+│  ├── 1.2 Tooling Modernization: Cranky.toml -> Native [workspace.lints]  │
+│  └── 1.3 Git Hook Infrastructure: cargo-husky -> Native .githooks        │
+└───────────────────────────────────┬──────────────────────────────────────┘
                                     │
                                     ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ Phase 2: Architectural Decoupling & Gradual Kernel Offloading          │
-├────────────────────────────────────────────────────────────────────────┤
-│  ├── 2.1 Driver vs Daemon Decoupling (3-Layer Architecture)            │
-│  ├── 2.2 Progressive Kernel Offloading & Driver Delegation             │
-│  └── 2.3 Armoury Attribute Management (Pub/Sub Event System)           │
-└───────────────────────────────────┬────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Phase 2: Architectural Decoupling & Gradual Kernel Offloading            │
+├──────────────────────────────────────────────────────────────────────────┤
+│  ├── 2.1 Driver vs Daemon Decoupling (3-Layer Architecture)              │
+│  ├── 2.2 Progressive Kernel Offloading & Driver Delegation               │
+│  └── 2.3 Armoury Attribute Management (Pub/Sub Event System)             │
+└───────────────────────────────────┬──────────────────────────────────────┘
                                     │
                                     ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ Phase 3: Protocol Safety, Ergonomics, Event Loop & CLI                 │
-├────────────────────────────────────────────────────────────────────────┤
-│  ├── 3.1 USB HID Wire Protocol Safety (`zerocopy`)                     │
+┌───────────────────────────────────────────────────────────────────────────┐
+│ Phase 3: Protocol Safety, Ergonomics, Event Loop & CLI                    │
+├───────────────────────────────────────────────────────────────────────────┤
+│  ├── 3.1 USB HID Wire Protocol Safety (`zerocopy`)                        │
 │  ├── 3.2 PNG & Raster Pipeline Modernization (`rog-anime` image migration)│
-│  ├── 3.3 Async Hardware Event Stream (`tokio-udev` & Lifecycle Tokens) │
-│  ├── 3.4 Ergonomic Types & CLI Modernization (`clap` v4, `strum`, flags) │
-│  └── 3.5 Strongly-Typed Domain Error Hierarchy (`thiserror` v2)        │
-└───────────────────────────────────┬────────────────────────────────────┘
+│  ├── 3.3 Async Hardware Event Stream (`tokio-udev` & Lifecycle Tokens)    │
+│  ├── 3.4 Ergonomic Types & CLI Modernization (`clap` v4, `strum`, flags)  │
+│  └── 3.5 Strongly-Typed Domain Error Hierarchy (`thiserror` v2)           │
+└───────────────────────────────────┬───────────────────────────────────────┘
                                     │
                                     ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ Phase 4: Testability, Observability & Automation                       │
-├────────────────────────────────────────────────────────────────────────┤
-│  ├── 4.1 `sysfs` Abstraction & Hardware Mocking (`SysfsProvider`)      │
-│  ├── 4.2 Asynchronous Observability & Structured Tracing (`tracing`)   │
-│  └── 4.3 Automated Integration Testing Suite (`uhid-virt` & E2E)       │
-└────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│ Phase 4: Testability, Observability & Automation                          │
+├───────────────────────────────────────────────────────────────────────────┤
+│  ├── 4.1 `sysfs` Abstraction & Hardware Mocking (`SysfsProvider`)         │
+│  ├── 4.2 Asynchronous Observability & Structured Tracing (`tracing`)      │
+│  └── 4.3 Automated Integration Testing Suite (`uhid-virt` & E2E)          │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
