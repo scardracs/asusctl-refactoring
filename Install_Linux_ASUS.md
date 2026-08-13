@@ -1,69 +1,150 @@
 # Install Linux on ASUS Laptops
-Hi everyone and welcome to the resistance.  
-This is a little guide of mine on how to install linux on your Asus laptop, based on my personal experience and with the help of the amazing family named the OpenGamingCollective!  
-We at the [OpenGamingCollective](https://opengamingcollective.org/), shortend in OGC, are a group of people who seek to take the most out of our device, from work to gaming (especially gaming)to daily life activities, free of the burden of an OS who want to control your life, sell your privacy and take away your freedom of choice.
 
-In particular, We at [asus-linux](https://asus-linux.org/) use [ROG Control Center](https://github.com/OpenGamingCollective/asusctl) to control our laptops, from power profiles to rgb lights (on supported models).
+Hi everyone and welcome to the resistance!  
+This is a comprehensive guide on how to install Linux on your ASUS laptop, based on personal experience and created with the help of the amazing community at **OpenGamingCollective (OGC)** and **asus-linux**.
 
-First of all, You need 5 things:
+We at the [OpenGamingCollective](https://opengamingcollective.org/) (OGC) are a group of developers, gamers, and enthusiasts who seek to get the absolute most out of our hardware — from daily productivity to high-performance gaming — free from the constraints of operating systems that compromise your privacy and restrict your freedom of choice.
 
-- An Asus Laptop (duh!)
-- Windows (WAT!?) - Yeah, We need WeirDOS and You'll find out why below
-- The ISO of the Linux Distro You want to install (REMEMBER - We in asus-linux only officially support Arch and Arch based OSes)
-- A USB Key where to flash your OS
-- Some free time (and a lot of patience)
+In particular, the [asus-linux](https://asus-linux.org/) project maintains [asusctl](https://github.com/OpenGamingCollective/asusctl) and [ROG Control Center](https://github.com/OpenGamingCollective/asusctl) to give you total hardware control over ASUS ROG, TUF, Zephyrus, Ally, and ZenBook laptops under Linux (including power profiles, fan curves, custom TDP limits, AniMe Matrix, and Aura RGB lighting).
 
-Now, without further ado, let's begin.
+---
 
-## Asus Laptop
-As I said before, We need an Asus Laptop. To be precise We need its exact model number (for eg., ROG Strix SCAR 17 G713QM, VivoBook S15 S533J, etc. in case you're wondering). You can find it on the box of your laptop, on a sticker on the bottom of the laptop, or in the BIOS. You need this information to check in the Linux repo if your laptop is supported by [linux](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/platform/x86/asus-armoury.h) and by [asus-linux](https://github.com/OpenGamingCollective/asusctl/blob/main/rog-aura/data/aura_support.ron). If your laptop is listed, You are good to go. If not, You can still install it but You will miss advance power control and keyboard lights.
+## 🎒 What You Need Before Starting
 
-In the case your device is not supported, don't worry! I gotchya covered.
+1. **An ASUS Laptop** (ROG Strix, Zephyrus, TUF, ROG Ally, ZenBook, Vivobook, etc.)
+2. **Windows** (Yes, really — we need Windows temporarily to extract factory hardware parameters for unsupported models!)
+3. **A Linux Distro ISO** (Officially supported: **Arch Linux** and Arch-based distributions like EndeavourOS, Manjaro, CachyOS)
+4. **A USB Flash Drive** (At least 8 GB, USB 3.0 recommended)
+5. **Some free time and patience**
 
-## Windows
-This passage is specific for those who don't have a device model listed on the previous section. If your model is listed You can skip this section and go directly to the next one (but I still suggest You to follow it because that file is like gold to us). All We need is Armoury Crate at its latest version! Remember, it must be the latest version!
+---
 
-Done that? Good. Now, You should check inside C:\Program Files\ASUS\Armoury Crate\ or C:\ProgramData\ for a file named ThrottleGear_*your model*.xml. It's an encrypted file that contains the specs of your laptop for the TDP of the GPU and the CPU. We will need this later so be sure to save it somewhere safe.
+## 💻 1. Checking Hardware Support & Preparing Windows
 
-## The ISO of the Linux Distro You want to install
-Now, We can finally get to the fun part. You need to get an ISO of the Linux distro You want to install. Remeber, We only officially support Arch and Arch based OSes. If You want to use another distro, I wish You good luck (even more if You want to intall something like Ubuntu or any other .deb based distro as We don't support them). Also, remember We don't support OSes with x11 (only Wayland) and init systems other than systemd (no OpenRC, runit, s6, etc). If You don't know what these are, just stick to Arch or an Arch based OS.
+### Identifying Your Exact Laptop Model
+You need your exact laptop model string (e.g. `ROG Strix SCAR 17 G713QM`, `Zephyrus G14 GA402RJ`, `TUF Gaming A15 FA507XI`, `ROG Ally RC71L`). You can find this model number on:
+* The original retail box or sticker on the bottom of the chassis
+* In your laptop's BIOS/UEFI main screen
+* By running `wmic csproduct get name` in Windows Command Prompt
 
-## A USB Key
-Now that We are done with the pleasentries, let's get to the practical part. You need at least a 8GB key to be sure it will not fail You because too little space. For our guide I suggest [Rufus](https://rufus.ie/) to flash the ISO. You simply select your ISO in the ISO field, select your USB key in the Device field, select GPT partition scheme and press start. In 10 minutes You should have your bootable usb key ready.
+### Verifying Upstream Kernel & `asus-linux` Support
+Check whether your laptop model and features are supported:
+* Upstream Linux kernel driver support: [`asus-armoury.h`](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/platform/x86/asus-armoury.h)
+* Keyboard Aura RGB support database: [`aura_support.ron`](https://github.com/OpenGamingCollective/asusctl/blob/main/rog-aura/data/aura_support.ron)
 
-## Some free time
-Now the real hassle. First of all You need to boot into your BIOS. Turn off your laptop, then turn it on again and start pushing like your life depends on it F2 or Canc or Esc: it depends on your model. Done that, You should be in a blueish (depending on the model) screen. Now, look around for "Secure Boot" and disable it (it's in boot or security tab usually). You should also set your USB Key as the primary boot device. If You  have any doubt about these passages feel free to crash in our [OGC Discord](https://discord.gg/ugAKk6peK) and ask away. If You are good to go, now You can reboot and proceed with the installation.
+If your laptop is listed, hardware control works out of the box! If it's a brand-new or unlisted model, you can still install Linux seamlessly, but you'll want to follow the section below to help us extract TDP parameters.
 
-## Installation
-I won't guide You on how to install your OS because it depends on your choice. If You have decided for vanilla Arch, I wish You good luck and I redirect You to the [ArchWiki](https://wiki.archlinux.org/title/Installation_guide) for further instructions. If You have decided for an Arch based distro with graphical install, it will be much easier to follow. In any case, when you'll be in your new Linux OS, be sure to follow the following steps:
+### Extracting `ThrottleGear_*.xml` (Goldmine for New Hardware!)
+If your laptop is a new generation or not yet explicitly listed, Armoury Crate in Windows contains the factory TDP power tables, boost limits, and fan curve limits:
 
-1. Find out the correct repo (for Arch and Arch based OSes I don't suggest the one in AUR because it's not maintained by Us). We officially maintain [Our repo](https://pacman.opengamingcollective.org/). You can add it to your system by running the following commands:
-    - We need to modify the pacman.conf to add the needed ogc repo  
-    ```bash
-    sudo nano /etc/pacman.conf
-    ```
-    - Bedore any other repos add these lines:
-    ```bash
-    [ogc]
-    SigLevel = Optional TrustAll
-    Server = https://pacman.opengamingcollective.org/repo/$arch
-    ```
-2. Now update your system packages. It will ask You to import a new key. Ofc say Yes!
-    ```bash
-    sudo pacman -Syu
-    ```
-    - And now You can install rog-control-center! It will pick up all the needed packages for you
-    ```bash
-    sudo pacman -S rog-control-center
-    ```
-3. You can start rog-control-center and be good to go!
-    - Under App Settings, You can find that there's a voice to start the app at boot: personally I suggest it so You don't have to start it manually every time at every boot.
-    - On System Control, You can easily find if your device is officially supported, because You'll see a bunch of sliders where to decide the TDP of the CPU and GPU.
-    - Under Keyboard Aura, You can decide which Aura effect use. If your device is not officially supported, only the static mode will works.
+1. Boot into Windows and update **Armoury Crate** to the latest version.
+2. Navigate to:
+   * `C:\Program Files\ASUS\Armoury Crate\`
+   * or `C:\ProgramData\ASUS\` (enable "Show hidden files" in File Explorer)
+3. Search for a file matching: `ThrottleGear_*your_model*.xml` (e.g. `ThrottleGear_G713QM.xml`).
+4. Copy this file to a safe place (e.g. cloud storage or a secondary USB drive). This file contains encrypted TDP parameters for the CPU/GPU that allow us to add native support for your laptop model!
 
-## Conclusions
-That's it! You now have a working Linux OS on your ASUS laptop. I hope this guide helped You. If You still have any doubts, suggestions or anything else, feel free to ask in our [OGC Discord](https://discord.gg/ugAKk6peK).
+---
 
-## And the ThrottleGear?
-You thought We'd forget about it? No way!  
-If your device is not supported and you pick up the ThrottleGear xml file, check out for me, @scardracs, on our [Discord](https://discord.gg/ugAKk6peK). This file will help on adding your device to the supported ones or, even better, You can open a [new issue on our Github](https://github.com/OpenGamingCollective/asusctl/issues/new) and submit the ThrottleGear file You found in the folder I said earlier.
+## 💿 2. Selecting Your Linux Distro & Preparing the USB
+
+### Distro Compatibility Rules
+To ensure 100% compatibility with `asusctl` and `rog-control-center`:
+* **Official Distro Support**: Arch Linux and Arch-based OSes (EndeavourOS, CachyOS, Manjaro).
+* **Display Server**: **Wayland** is required for modern multi-GPU dynamic switching, panel refresh rate switching, and display scaling (X11 is deprecated and unsupported).
+* **Init System**: **systemd** is strictly required (OpenRC, runit, or s6 are unsupported).
+* **Kernel Version**: We strongly recommend Linux Kernel **6.10+** (preferably the latest stable kernel).
+
+### Flashing the USB Drive
+1. Insert your USB drive (at least 8 GB).
+2. Download [Rufus](https://rufus.ie/) (Windows) or use `dd` / [Impression](https://flathub.org/apps/io.gitlab.mrvik.Impression) (Linux).
+3. In Rufus:
+   * Select your downloaded Arch/Arch-based ISO.
+   * Select **GPT** partition scheme and **UEFI (non CSM)** target system.
+   * Click **Start** and wait ~5–10 minutes for flashing to finish.
+
+---
+
+## ⚙️ 3. BIOS / UEFI Settings (Crucial Step!)
+
+1. Shut down your laptop completely.
+2. Turn it on and immediately tap **F2** (or **Del**) repeatedly to enter BIOS setup.
+3. Switch to **Advanced Mode** (usually **F7**).
+4. Configure the following mandatory BIOS settings:
+   * **Secure Boot**: Set to **Disabled** (found under the *Security* or *Boot* tab).
+   * **Fast Boot**: Set to **Disabled**.
+   * **VMD Controller / Intel RST** (Intel models only): If enabled, switch storage mode to **AHCI / NVMe** so Linux can detect your SSDs.
+   * **Graphics Mode**: Set GPU mode to **Hybrid** or **Standard** for initial installation.
+5. Set your USB drive as **Boot Option #1** (or tap **F8** during boot to bring up the UEFI Boot Menu).
+6. Save & Exit (**F10**).
+
+---
+
+## 🚀 4. Installing the OS & Setting up `asusctl`
+
+Follow your chosen distribution's installer (e.g. `archinstall` for Arch Linux, or the Calamares installer for EndeavourOS/CachyOS). Make sure to choose a Wayland desktop environment (**KDE Plasma 6** or **GNOME 46+** are recommended).
+
+Once booted into your new Linux installation:
+
+### Step 1: Add the Official OGC Pacman Repository
+We maintain pre-compiled, optimized packages for Arch Linux in the official OGC repository (avoid outdated AUR packages).
+
+Open your terminal and edit `/etc/pacman.conf`:
+```bash
+sudo nano /etc/pacman.conf
+```
+
+Add the `[ogc]` repository block **above** all other repository definitions (above `[core]`):
+```ini
+[ogc]
+SigLevel = Optional TrustAll
+Server = https://pacman.opengamingcollective.org/repo/$arch
+```
+
+Save and exit (`Ctrl+O`, `Enter`, `Ctrl+X`).
+
+### Step 2: System Update & Package Installation
+Update your pacman package database and install `rog-control-center` (this will automatically pull `asusctl`, `asusd`, and all required dependencies):
+
+```bash
+sudo pacman -Syu
+sudo pacman -S rog-control-center
+```
+
+### Step 3: Enable & Start the Background Daemon
+Enable and start the `asusd` system service and user session service:
+
+```bash
+sudo systemctl enable --now asusd
+systemctl --user enable --now asusd-user
+```
+
+### Step 4: Verify Hardware Control
+Launch `rog-control-center` from your application menu or terminal:
+
+```bash
+rog-control-center
+```
+
+* **System Control Tab**: Adjust CPU/GPU TDP sliders, thermal profiles (Quiet, Balanced, Performance), fan curves, and battery charge limits (e.g. 60%, 80%, 100%).
+* **Keyboard Aura Tab**: Customize RGB lighting effects, per-zone colors, and brightness.
+* **CLI Control**: You can also use the `asusctl` CLI tool in terminal:
+  ```bash
+  asusctl info                 # Print hardware & daemon status
+  asusctl profile -n            # Cycle power profiles (Quiet -> Balanced -> Performance)
+  asusctl aura static -c ff0000 # Set static red keyboard backlight
+  ```
+
+---
+
+## 🎉 Conclusion & How to Submit `ThrottleGear` Files
+
+Congratulations! You now have a high-performance Linux system running on your ASUS laptop with full hardware control.
+
+### Have an Unsupported Model or `ThrottleGear_*.xml` File?
+If your laptop model was unlisted or missing custom TDP profiles:
+1. Join our community on the [OpenGamingCollective Discord](https://discord.gg/ugAKk6peK).
+2. Reach out directly to **@scardracs** or post in the hardware support channel.
+3. Alternatively, open a new issue on the [asusctl GitHub Repository](https://github.com/OpenGamingCollective/asusctl/issues/new) and attach your extracted `ThrottleGear_*.xml` file.
+
+Your contribution helps us add native Linux support for your laptop model for the entire community! 🚀
