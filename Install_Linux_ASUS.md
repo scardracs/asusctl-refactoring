@@ -98,7 +98,7 @@ Add the `[ogc]` repository block **above** all other repository definitions (abo
 ```ini
 [ogc]
 SigLevel = Optional TrustAll
-Server = https://pacman.opengamingcollective.org/repo/$arch
+Server = https://pacman.opengamingcollective.org/
 ```
 
 Save and exit (`Ctrl+O`, `Enter`, `Ctrl+X`).
