@@ -53,7 +53,7 @@ To ensure 100% compatibility with `asusctl` and `rog-control-center`:
 * **Official Distro Support**: Arch Linux and Arch-based OSes (EndeavourOS, CachyOS, Manjaro).
 * **Display Server**: **Wayland** is required for modern multi-GPU dynamic switching, panel refresh rate switching, and display scaling (X11 is deprecated and unsupported).
 * **Init System**: **systemd** is strictly required (OpenRC, runit, or s6 are unsupported).
-* **Kernel Version**: We strongly recommend Linux Kernel **6.10+** (preferably the latest stable kernel).
+* **Kernel Version**: We strongly recommend Linux Kernel **6.19+** (preferably the latest stable kernel, required for native `asus-armoury` and firmware attribute support).
 
 ### Flashing the USB Drive
 1. Insert your USB drive (at least 8 GB).
