@@ -35,9 +35,9 @@ jobs:
       - name: Check for changes
         id: git_diff
         run: |
-          if [ -n "$(git status --porcelain PULL_REQUESTS.md ISSUES.md)" ]; then
+          if [ -n "$(git status --porcelain PULL_REQUESTS.md ISSUES.md scripts/roadmap_mapping.json)" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Detected updates in upstream PRs or Issues."
+            echo "Detected updates in upstream PRs, Issues, or metadata mapping."
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No upstream changes detected."
@@ -48,6 +48,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add PULL_REQUESTS.md ISSUES.md
-          git commit -m "chore(sync): daily update of upstream PRs and issues [skip ci]"
+          git add PULL_REQUESTS.md ISSUES.md scripts/roadmap_mapping.json
+          git commit -m "chore(sync): daily update of upstream PRs, issues, and metadata mapping [skip ci]"
           git push

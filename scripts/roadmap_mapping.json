@@ -10,6 +10,11 @@
       "phase": "Phase 2.5",
       "reopen_candidate": false
     },
+    "315": {
+      "action": "Merged into rogcc-redesign: Prepares modular pages & accessibility",
+      "phase": "Phase 3.4",
+      "reopen_candidate": false
+    },
     "314": {
       "action": "🟢 KEEP / MERGE: Consolidated image pipeline under image = '=0.25.9'",
       "phase": "Phase 3.2",
@@ -20,45 +25,15 @@
       "phase": "Phase 3.3",
       "reopen_candidate": false
     },
-    "310": {
-      "action": "🟠 REOPEN / MERGE: Purges obsolete asusd-user crate, units, and packaging bloat",
-      "phase": "Phase 1.4",
-      "reopen_candidate": true
-    },
     "311": {
       "action": "🟠 REOPEN / MERGE: Purges legacy examples and unneeded check/test targets",
       "phase": "Phase 3.4",
       "reopen_candidate": true
     },
-    "305": {
-      "action": "🟢 KEEP / MERGE: Prevents panics on read-only configs (Invariant #5)",
-      "phase": "Phase 3.4",
-      "reopen_candidate": false
-    },
-    "301": {
-      "action": "🟢 KEEP / MERGE: Simplifies Armoury attribute persistence & boot restoration",
-      "phase": "Phase 2.3",
-      "reopen_candidate": false
-    },
-    "300": {
-      "action": "🟢 KEEP / MERGE: Rejects out-of-bounds Armoury tuning writes to sysfs",
-      "phase": "Phase 2.3",
-      "reopen_candidate": false
-    },
-    "296": {
-      "action": "🟠 REOPEN / MERGE: User-friendly crash dialogs & sanitized logs across CLI/GUI",
-      "phase": "Phase 3.4",
+    "310": {
+      "action": "🟠 REOPEN / MERGE: Purges obsolete asusd-user crate, units, and packaging bloat",
+      "phase": "Phase 1.4",
       "reopen_candidate": true
-    },
-    "280": {
-      "action": "🟢 KEEP / MERGE: Graceful fallback when firmware lacks Quiet/Low-Power profile",
-      "phase": "Phase 2.5",
-      "reopen_candidate": false
-    },
-    "315": {
-      "action": "Merged into rogcc-redesign: Prepares modular pages & accessibility",
-      "phase": "Phase 3.4",
-      "reopen_candidate": false
     },
     "309": {
       "action": "Integrated Upstream (6b6cdc63): Migrated workspace to Rust Edition 2024",
@@ -80,9 +55,24 @@
       "phase": "Phase 1.1",
       "reopen_candidate": false
     },
+    "305": {
+      "action": "🟢 KEEP / MERGE: Prevents panics on read-only configs (Invariant #5)",
+      "phase": "Phase 3.4",
+      "reopen_candidate": false
+    },
     "303": {
       "action": "Integrated Upstream (5307fd13): Major documentation overhaul & CLI guide",
       "phase": "Phase 4",
+      "reopen_candidate": false
+    },
+    "301": {
+      "action": "🟢 KEEP / MERGE: Simplifies Armoury attribute persistence & boot restoration",
+      "phase": "Phase 2.3",
+      "reopen_candidate": false
+    },
+    "300": {
+      "action": "🟢 KEEP / MERGE: Rejects out-of-bounds Armoury tuning writes to sysfs",
+      "phase": "Phase 2.3",
       "reopen_candidate": false
     },
     "299": {
@@ -100,9 +90,24 @@
       "phase": "Phase 1.1",
       "reopen_candidate": false
     },
+    "296": {
+      "action": "🟠 REOPEN / MERGE: User-friendly crash dialogs & sanitized logs across CLI/GUI",
+      "phase": "Phase 3.4",
+      "reopen_candidate": true
+    },
     "294": {
       "action": "Integrated Upstream (731d772c): Passive zero-wakeup dGPU telemetry & udev scan deduplication",
       "phase": "Phase 1.1",
+      "reopen_candidate": false
+    },
+    "280": {
+      "action": "🟢 KEEP / MERGE: Graceful fallback when firmware lacks Quiet/Low-Power profile",
+      "phase": "Phase 2.5",
+      "reopen_candidate": false
+    },
+    "202": {
+      "action": "Evaluate for roadmap integration",
+      "phase": "Phase 2 / 3",
       "reopen_candidate": false
     }
   },

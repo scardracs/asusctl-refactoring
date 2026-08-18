@@ -3,7 +3,7 @@
 Sync Upstream Status Script for asusctl-refactoring.
 
 Fetches open PRs and Issues from OpenGamingCollective/asusctl,
-combines them with diagnostic mappings in roadmap_mapping.json,
+synchronizes and updates diagnostic mappings in roadmap_mapping.json,
 and regenerates PULL_REQUESTS.md and ISSUES.md.
 """
 
@@ -30,6 +30,21 @@ def load_roadmap_mapping() -> tuple[dict, dict]:
     except Exception as e:
         print(f"Warning: Failed to load {MAPPING_FILE}: {e}", file=sys.stderr)
         return {}, {}
+
+def save_roadmap_mapping(pr_mappings: dict, issue_mappings: dict) -> bool:
+    """Save updated PR and Issue diagnostic metadata to JSON."""
+    payload = {
+        "pull_requests": dict(sorted(pr_mappings.items(), key=lambda x: int(x[0]), reverse=True)),
+        "issues": dict(sorted(issue_mappings.items(), key=lambda x: int(x[0]), reverse=True)),
+    }
+    try:
+        with open(MAPPING_FILE, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+        return True
+    except Exception as e:
+        print(f"Error saving {MAPPING_FILE}: {e}", file=sys.stderr)
+        return False
 
 def fetch_github_api(endpoint: str, params: dict = None) -> list:
     """Fetch paginated data from GitHub API."""
@@ -68,6 +83,48 @@ def get_all_issues():
     open_issues = fetch_github_api("issues", {"state": "open", "per_page": 100})
     # Filter out pull requests which GitHub API includes in /issues
     return [i for i in open_issues if "pull_request" not in i]
+
+def sync_and_prune_mappings(open_prs: list, open_issues: list, pr_mappings: dict, issue_mappings: dict) -> bool:
+    """Auto-discover new PRs/Issues and prune stale closed issues from mapping file."""
+    changed = False
+
+    # 1. Register new open PRs if not already present
+    for pr in open_prs:
+        num_str = str(pr["number"])
+        if num_str not in pr_mappings:
+            pr_mappings[num_str] = {
+                "action": "Evaluate for roadmap integration",
+                "phase": "Phase 2 / 3",
+                "reopen_candidate": False,
+            }
+            print(f"Auto-registered new PR #{num_str} in roadmap mapping.")
+            changed = True
+
+    # 2. Register new open Issues if not already present
+    open_issue_nums = {str(i["number"]) for i in open_issues}
+    for issue in open_issues:
+        num_str = str(issue["number"])
+        if num_str not in issue_mappings:
+            labels = [l["name"].lower() for l in issue.get("labels", [])]
+            title = issue.get("title", "").lower()
+            is_bug = "bug" in labels or "bug" in title or "panic" in title or "crash" in title
+            status = "⚠️ **ACTIVE BUG**" if is_bug else "💡 **FEATURE REQUEST**"
+            issue_mappings[num_str] = {
+                "status": status,
+                "resolution": "Phase 2 / 3: Upstream issue triage & investigation",
+            }
+            print(f"Auto-registered new Issue #{num_str} ({status}) in roadmap mapping.")
+            changed = True
+
+    # 3. Prune closed issues from mapping (keep only currently open issues)
+    stale_issue_keys = [k for k in issue_mappings.keys() if k not in open_issue_nums]
+    if stale_issue_keys:
+        for k in stale_issue_keys:
+            del issue_mappings[k]
+            print(f"Pruned closed/resolved Issue #{k} from roadmap mapping.")
+        changed = True
+
+    return changed
 
 def assess_pr(pr: dict, pr_mappings: dict) -> tuple[str, str, str]:
     """Return status icon, recommended action, and roadmap phase for PR."""
@@ -344,10 +401,11 @@ def generate_issues_md(open_issues: list, issue_mappings: dict) -> str:
     return "\n".join(md)
 
 def main():
-    # Load curated roadmap mappings
+    # 1. Load curated roadmap mappings
     pr_mappings, issue_mappings = load_roadmap_mapping()
     print(f"Loaded {len(pr_mappings)} PR mappings and {len(issue_mappings)} Issue mappings from {MAPPING_FILE}")
 
+    # 2. Fetch live data from GitHub
     print(f"Fetching Pull Requests from {REPO}...")
     open_prs, closed_prs = get_all_prs()
     print(f"Fetched {len(open_prs)} open PRs and {len(closed_prs)} closed PRs.")
@@ -356,14 +414,20 @@ def main():
     open_issues = get_all_issues()
     print(f"Fetched {len(open_issues)} open Issues.")
 
-    # Generate PULL_REQUESTS.md
+    # 3. Synchronize and auto-update mapping dictionary (add new, prune closed)
+    mapping_changed = sync_and_prune_mappings(open_prs, open_issues, pr_mappings, issue_mappings)
+    if mapping_changed:
+        save_roadmap_mapping(pr_mappings, issue_mappings)
+        print(f"Successfully synchronized and saved updated {MAPPING_FILE}")
+
+    # 4. Generate PULL_REQUESTS.md
     pr_content = generate_pull_requests_md(open_prs, closed_prs, pr_mappings)
     pr_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PULL_REQUESTS.md")
     with open(pr_path, "w", encoding="utf-8") as f:
         f.write(pr_content)
     print(f"Updated {pr_path}")
 
-    # Generate ISSUES.md
+    # 5. Generate ISSUES.md
     issue_content = generate_issues_md(open_issues, issue_mappings)
     issue_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ISSUES.md")
     with open(issue_path, "w", encoding="utf-8") as f:
