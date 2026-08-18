@@ -49,14 +49,10 @@ def get_all_prs():
     return open_prs, closed_prs
 
 def get_all_issues():
-    """Fetch open and recently closed issues (excluding PRs)."""
+    """Fetch open issues only (excluding PRs)."""
     open_issues = fetch_github_api("issues", {"state": "open", "per_page": 100})
-    closed_issues = fetch_github_api("issues", {"state": "closed", "per_page": 50})
-
     # Filter out pull requests which GitHub API includes in /issues
-    open_issues = [i for i in open_issues if "pull_request" not in i]
-    closed_issues = [i for i in closed_issues if "pull_request" not in i]
-    return open_issues, closed_issues
+    return [i for i in open_issues if "pull_request" not in i]
 
 def assess_pr(pr: dict) -> tuple[str, str, str]:
     """Return status icon, recommended action, and roadmap phase for PR."""
@@ -108,11 +104,14 @@ def assess_pr(pr: dict) -> tuple[str, str, str]:
         return "🔄 **OPEN**", "Evaluate for roadmap integration", "Phase 2 / 3"
 
 def generate_pull_requests_md(open_prs: list, closed_prs: list) -> str:
-    """Generate markdown content for PULL_REQUESTS.md."""
+    """Generate markdown content for PULL_REQUESTS.md focusing on active and actionable PRs."""
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    # Combine key PRs in priority order
-    all_prs = open_prs + [p for p in closed_prs if p.get("merged_at") or p["number"] in (310, 311, 296)]
+    # Keep active open PRs + specifically actionable closed PRs recommended to reopen
+    actionable_reopen_ids = {310, 311, 296}
+    reopen_prs = [p for p in closed_prs if p["number"] in actionable_reopen_ids]
+    all_prs = open_prs + reopen_prs
+
     # Deduplicate by number
     seen = set()
     unique_prs = []
@@ -124,17 +123,17 @@ def generate_pull_requests_md(open_prs: list, closed_prs: list) -> str:
     unique_prs.sort(key=lambda p: p["number"], reverse=True)
 
     md = [
-        "# 🔀 Pull Request Catalog & Architectural Assessment",
+        "# 🔀 Active Pull Request Catalog & Architectural Assessment",
         "",
         f"> *Last automated synchronization: {now_str}*",
         "",
-        f"This document provides an automated audit of upstream pull requests (Open, Merged, and Closed-without-merge) from [`{REPO}`](https://github.com/{REPO}/pulls).",
+        f"This document provides an automated audit of active and actionable upstream pull requests from [`{REPO}`](https://github.com/{REPO}/pulls).",
         "",
         "Each pull request is evaluated for its architectural impact, alignment with the **\"Async Control, Sync Data\"** paradigm, dependency health, and whether it should be merged, kept, or reopened.",
         "",
         "---",
         "",
-        "## 📑 Summary Matrix",
+        "## 📑 Summary Matrix (Active & Actionable PRs)",
         "",
         "| PR # | Type / Area | Branch / Scope | Status | Recommended Action | Roadmap Phase |",
         "| :--- | :--- | :--- | :---: | :--- | :---: |",
@@ -270,8 +269,8 @@ def categorize_issue(issue: dict) -> str:
     else:
         return "packaging_docs"
 
-def generate_issues_md(open_issues: list, closed_issues: list) -> str:
-    """Generate markdown content for ISSUES.md."""
+def generate_issues_md(open_issues: list) -> str:
+    """Generate markdown content for ISSUES.md containing only open issues."""
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     categories = {
@@ -283,9 +282,8 @@ def generate_issues_md(open_issues: list, closed_issues: list) -> str:
         "packaging_docs": ("📦 Packaging, Distribution & Ecosystem Integration", []),
     }
 
-    all_issues = open_issues + closed_issues[:20]
     seen = set()
-    for issue in all_issues:
+    for issue in open_issues:
         num = issue["number"]
         if num in seen:
             continue
@@ -294,11 +292,11 @@ def generate_issues_md(open_issues: list, closed_issues: list) -> str:
         categories[cat][1].append(issue)
 
     md = [
-        "# 🐛 Upstream Issues Audit & Roadmap Mapping",
+        "# 🐛 Active Upstream Issues & Roadmap Mapping",
         "",
         f"> *Last automated synchronization: {now_str}*",
         "",
-        f"This document provides an automated classification of all open issues and key resolved issues from [`{REPO}`](https://github.com/{REPO}/issues).",
+        f"This document provides an automated classification of all **active open issues** from [`{REPO}`](https://github.com/{REPO}/issues).",
         "",
         "Issues are categorized by subsystem and functional domain, detailing their root causes and mapping them directly to our architectural refactoring roadmap, pull requests, and engineering invariants.",
         "",
@@ -309,8 +307,6 @@ def generate_issues_md(open_issues: list, closed_issues: list) -> str:
     ]
 
     for idx, (cat_key, (cat_title, _)) in enumerate(categories.items(), 1):
-        anchor = cat_title.lower().replace("`", "").replace("(", "").replace(")", "").replace(" ", "-").replace(",", "").replace("&", "").replace("---", "-").replace("--", "-")
-        # cleanup anchor
         clean_anchor = "".join(c for c in cat_title.lower() if c.isalnum() or c in " -").replace(" ", "-")
         while "--" in clean_anchor:
             clean_anchor = clean_anchor.replace("--", "-")
@@ -352,17 +348,15 @@ def generate_issues_md(open_issues: list, closed_issues: list) -> str:
         ])
 
         if not issues_list:
-            md.append("| — | *No active issues currently reported in this category* | — | — | — |")
+            md.append("| — | *No active open issues currently reported in this category* | — | — | — |")
         else:
             for issue in issues_list:
                 num = issue["number"]
                 title = issue.get("title", "").replace("|", "\\|")
                 url = issue.get("html_url", f"https://github.com/{REPO}/issues/{num}")
-                state = issue.get("state", "open")
-                status = "🔄 **OPEN**" if state == "open" else "✅ **CLOSED**"
                 labels = ", ".join(f"`{l['name']}`" for l in issue.get("labels", [])[:3]) or "`general`"
                 res = resolution_map.get(num, "Phase 2 / 3: Refactoring roadmap tracking")
-                md.append(f"| **[#{num}]({url})** | {title[:55]}... | {labels} | {status} | **{res}** |")
+                md.append(f"| **[#{num}]({url})** | {title[:55]}... | {labels} | 🔄 **OPEN** | **{res}** |")
 
         md.extend(["", "---", ""])
 
@@ -381,9 +375,9 @@ def main():
     open_prs, closed_prs = get_all_prs()
     print(f"Fetched {len(open_prs)} open PRs and {len(closed_prs)} closed PRs.")
 
-    print(f"Fetching Issues from {REPO}...")
-    open_issues, closed_issues = get_all_issues()
-    print(f"Fetched {len(open_issues)} open Issues and {len(closed_issues)} closed Issues.")
+    print(f"Fetching Open Issues from {REPO}...")
+    open_issues = get_all_issues()
+    print(f"Fetched {len(open_issues)} open Issues.")
 
     # Generate PULL_REQUESTS.md
     pr_content = generate_pull_requests_md(open_prs, closed_prs)
@@ -393,7 +387,7 @@ def main():
     print(f"Updated {pr_path}")
 
     # Generate ISSUES.md
-    issue_content = generate_issues_md(open_issues, closed_issues)
+    issue_content = generate_issues_md(open_issues)
     issue_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ISSUES.md")
     with open(issue_path, "w", encoding="utf-8") as f:
         f.write(issue_content)

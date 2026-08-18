@@ -1,8 +1,8 @@
-# 🐛 Upstream Issues Audit & Roadmap Mapping
+# 🐛 Active Upstream Issues & Roadmap Mapping
 
-> *Last automated synchronization: 2026-08-18 15:50 UTC*
+> *Last automated synchronization: 2026-08-18 15:57 UTC*
 
-This document provides an automated classification of all open issues and key resolved issues from [`OpenGamingCollective/asusctl`](https://github.com/OpenGamingCollective/asusctl/issues).
+This document provides an automated classification of all **active open issues** from [`OpenGamingCollective/asusctl`](https://github.com/OpenGamingCollective/asusctl/issues).
 
 Issues are categorized by subsystem and functional domain, detailing their root causes and mapping them directly to our architectural refactoring roadmap, pull requests, and engineering invariants.
 
@@ -42,9 +42,6 @@ Issues are categorized by subsystem and functional domain, detailing their root 
 | **[#100](https://github.com/OpenGamingCollective/asusctl/issues/100)** | CPU is heavily power limited (Zephyrus M16 2023)... | `general` | 🔄 **OPEN** | **Phase 2 / 3: Refactoring roadmap tracking** |
 | **[#82](https://github.com/OpenGamingCollective/asusctl/issues/82)** | Show OSD notification on power profile change... | `general` | 🔄 **OPEN** | **Phase 2 / 3: Refactoring roadmap tracking** |
 | **[#68](https://github.com/OpenGamingCollective/asusctl/issues/68)** | Add Static and BatteryLevel modes for slash lighting... | `general` | 🔄 **OPEN** | **Phase 2 / 3: Refactoring roadmap tracking** |
-| **[#293](https://github.com/OpenGamingCollective/asusctl/issues/293)** | [Bug]: rog-control-center telemetry loop calls NVML unc... | `bug`, `rog-control-center`, `rog-platform` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
-| **[#282](https://github.com/OpenGamingCollective/asusctl/issues/282)** | GU606AX missing from asus-armoury power_limits table — ... | `bug`, `enhancement`, `asusd` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
-| **[#262](https://github.com/OpenGamingCollective/asusctl/issues/262)** | [Bug]: Rog control center icon does not report anymore ... | `bug`, `rog-control-center`, `rog-platform` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
 
 ---
 
@@ -54,8 +51,6 @@ Issues are categorized by subsystem and functional domain, detailing their root 
 | :--- | :--- | :--- | :---: | :--- |
 | **[#232](https://github.com/OpenGamingCollective/asusctl/issues/232)** | asusd-user crashes on startup: DBus path mismatch for A... | `general` | 🔄 **OPEN** | **Phase 1.4 / PR #310: Purge asusd-user crate entirely. All clients communicate with asusd system D-Bus paths.** |
 | **[#229](https://github.com/OpenGamingCollective/asusctl/issues/229)** | rog-control-center leaks a D-Bus connection per poll an... | `general` | 🔄 **OPEN** | **Phase 1.1 / 'Async Control, Sync Data': Standardize on a single, long-lived zbus::Connection proxy pool.** |
-| **[#269](https://github.com/OpenGamingCollective/asusctl/issues/269)** | [Bug]: Slash Bar DBus error on asusctl... | `bug`, `asusd`, `asusctl` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
-| **[#260](https://github.com/OpenGamingCollective/asusctl/issues/260)** | rog-control-center keeps a stale Aura proxy after keybo... | `bug`, `rog-control-center`, `rog-aura` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
 
 ---
 
@@ -85,11 +80,6 @@ Issues are categorized by subsystem and functional domain, detailing their root 
 | **[#110](https://github.com/OpenGamingCollective/asusctl/issues/110)** | [Feature Request / Bug] ASUS Zenbook Duo 2025 — keyboar... | `general` | 🔄 **OPEN** | **Phase 2 / 3: Refactoring roadmap tracking** |
 | **[#108](https://github.com/OpenGamingCollective/asusctl/issues/108)** | `platform::cameramute` LED not supported on ASUS Zenboo... | `general` | 🔄 **OPEN** | **Phase 2 / 3: Refactoring roadmap tracking** |
 | **[#98](https://github.com/OpenGamingCollective/asusctl/issues/98)** | Automatic keyboard backlight timeout and wake-on-input... | `general` | 🔄 **OPEN** | **Phase 2 / 3: Refactoring roadmap tracking** |
-| **[#286](https://github.com/OpenGamingCollective/asusctl/issues/286)** | [Device Support]: FA706IC/FA706ICB... | `enhancement`, `asusd`, `rog-aura` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
-| **[#267](https://github.com/OpenGamingCollective/asusctl/issues/267)** | [Device Support]: Add Aura support for ASUS TX Gaming /... | `enhancement`, `asusd`, `rog-aura` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
-| **[#259](https://github.com/OpenGamingCollective/asusctl/issues/259)** | asusd: keyboard LEDs stay dark after a detachable keybo... | `bug`, `asusd`, `rog-aura` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
-| **[#258](https://github.com/OpenGamingCollective/asusctl/issues/258)** | rog-control-center binds to a random Aura device when a... | `bug`, `rog-control-center`, `rog-aura` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
-| **[#255](https://github.com/OpenGamingCollective/asusctl/issues/255)** | Rainbow effect available on ROG Flow Z13 (GZ301Z) keybo... | `enhancement`, `rog-control-center`, `rog-aura` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
 
 ---
 
@@ -103,7 +93,6 @@ Issues are categorized by subsystem and functional domain, detailing their root 
 | **[#193](https://github.com/OpenGamingCollective/asusctl/issues/193)** | [rog-control-center] Proposal: high-fidelity ROG skin —... | `general` | 🔄 **OPEN** | **Phase 2 / 3: Refactoring roadmap tracking** |
 | **[#160](https://github.com/OpenGamingCollective/asusctl/issues/160)** | .deb package building script... | `general` | 🔄 **OPEN** | **Phase 2 / 3: Refactoring roadmap tracking** |
 | **[#89](https://github.com/OpenGamingCollective/asusctl/issues/89)** | Setting in /etc/asusd/asusd.ron not exposed in rog-cont... | `general` | 🔄 **OPEN** | **Phase 2 / 3: Refactoring roadmap tracking** |
-| **[#254](https://github.com/OpenGamingCollective/asusctl/issues/254)** | [Bug]: Sidebar items do overlap on rog-control-center... | `bug`, `rog-control-center`, `rog-aura` | ✅ **CLOSED** | **Phase 2 / 3: Refactoring roadmap tracking** |
 
 ---
 
