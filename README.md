@@ -27,23 +27,9 @@ The remaining roadmap adopts a **pragmatic two-track strategy**:
 1. **Immediate User-Space Refactoring & Optimization**: Modernize daemon internals — eliminate remaining nested `Arc<Mutex<...>>` locks via Tokio actors to fix D-Bus deadlocks, replace the legacy `mio` thread in `aura_manager.rs` with `tokio-udev`, decouple code into a clean 3-layer architecture, migrate tooling to native Cargo workspace lints (`[workspace.lints]`), and introduce `sysfs` provider traits for non-root CI testing.
 2. **Progressive Kernel Offloading**: Opportunistically delegate low-level hardware driving to Linux kernel modules (`asus-wmi`, `asus-armoury`, `hid-asus`, `/sys/class/firmware_attributes/`) as modern kernel versions (7.0+) become widespread, keeping user-space fallback adapters modular.
 
-### 🔀 Upstream Pull Request Assessment & Roadmap Alignment
-
-An audit of all open and closed upstream pull requests (`OpenGamingCollective/asusctl/pulls`) identifies key modular contributions that align with our architectural roadmap:
-
-| PR # | Title / Area | Branch / Scope | Status | Architectural Rationale & Recommended Action |
-| :--- | :--- | :--- | :---: | :--- |
-| **[#317](https://github.com/OpenGamingCollective/asusctl/pull/317)** | `perf(anime): decouple kernel I/O` | `perf/anime-io-pipeline` | 🔄 **OPEN** | **Keep / Merge**: Reference implementation of "Async Control, Sync Data". Decouples USB HID I/O with Condvar mailbox and zero-copy D-Bus. |
-| **[#316](https://github.com/OpenGamingCollective/asusctl/pull/316)** | `feat(asusd): profile per source` | `feature/profile-per-source` | 🔄 **OPEN** | **Keep / Merge**: Remembers and restores distinct platform profiles per power supply (AC vs Battery) dynamically upon `logind` events. |
-| **[#314](https://github.com/OpenGamingCollective/asusctl/pull/314)** | `refactor: unify image decoding` | `refactor/unify-image-crate` | 🔄 **OPEN** | **Keep / Merge**: Consolidates PNG/APNG/GIF under `image = "=0.25.9"`; removes `png_pong`, `pix`, `gif`, `png`. Fulfills Phase 3.2. |
-| **[#312](https://github.com/OpenGamingCollective/asusctl/pull/312)** | `fix(rogcc): re-arm global shortcuts` | `fix/global-shortcuts-bind` | 🔄 **OPEN** | **Keep / Merge**: Re-arms XDG Global Shortcuts portal upon desktop session restore / sleep wakeup. |
-| **[#310](https://github.com/OpenGamingCollective/asusctl/pull/310)** | `refactor: remove asusd-user` | `refactor/remove-asusd-user` | ⏹️ **REOPEN / MERGE** | **Recommended to Reopen**: `asusd-user` is obsolete as all features are exposed by `asusd` on the system D-Bus. Eliminates crate bloat & dual-daemon packaging confusion. |
-| **[#311](https://github.com/OpenGamingCollective/asusctl/pull/311)** | `chore: remove obsolete examples` | `chore/remove-asusctl-examples` | ⏹️ **REOPEN / MERGE** | **Recommended to Reopen**: Cleans up outdated examples using legacy crates and reduces check/build targets. |
-| **[#305](https://github.com/OpenGamingCollective/asusctl/pull/305)** | `fix(traits): read-only config panic` | `fix/config-traits-read-only` | 🔄 **OPEN** | **Keep / Merge**: Prevents panic crashes when config files are opened in read-only mode, satisfying Invariant #5 (Zero `.unwrap()`). |
-| **[#301](https://github.com/OpenGamingCollective/asusctl/pull/301)** | `refactor(asusd): armoury persistence` | `refactor/armoury-persistence` | 🔄 **OPEN** | **Keep / Merge**: Simplifies Armoury attribute JSON serialization & boot restore logic. Core to Phase 2.3. |
-| **[#300](https://github.com/OpenGamingCollective/asusctl/pull/300)** | `fix(asusd): validate armoury tuning` | `fix/armoury-tuning-validation` | 🔄 **OPEN** | **Keep / Merge**: Validates Armoury attribute writes to prevent invalid sysfs values and boot persistence corruption. |
-| **[#296](https://github.com/OpenGamingCollective/asusctl/pull/296)** | `feat: human panic crash reports` | `feature/human-panic` | ⏹️ **REOPEN / MERGE** | **Recommended to Reopen**: Integrates user-friendly crash reporting across binaries instead of raw backtraces. |
-| **[#280](https://github.com/OpenGamingCollective/asusctl/pull/280)** | `fix: missing low-power profile` | `fix/platform-profile-fallback` | 🔄 **OPEN** | **Keep / Merge**: Handles laptops missing `Quiet`/`Low-Power` ACPI profiles without crashing daemon startup. |
+> 📚 **Dedicated Upstream Companion Catalogs**:
+> * **[🔀 Pull Request Catalog & Audit (`PULL_REQUESTS.md`)](PULL_REQUESTS.md)**: Full audit of all open, merged, and closed pull requests, architectural impact assessments, and reopening recommendations.
+> * **[🐛 Upstream Issues Audit & Roadmap Mapping (`ISSUES.md`)](ISSUES.md)**: Deep classification of all active issues (hardware quirks, zero-wakeup dGPU telemetry, D-Bus leaks, panics) mapped to roadmap solutions.
 
 ---
 
