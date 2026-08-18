@@ -2,7 +2,8 @@
 """
 Sync Upstream Status Script for asusctl-refactoring.
 
-Fetches open pull requests and issues from OpenGamingCollective/asusctl
+Fetches open PRs and Issues from OpenGamingCollective/asusctl,
+combines them with diagnostic mappings in roadmap_mapping.json,
 and regenerates PULL_REQUESTS.md and ISSUES.md.
 """
 
@@ -15,6 +16,20 @@ from datetime import datetime, timezone
 
 REPO = "OpenGamingCollective/asusctl"
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MAPPING_FILE = os.path.join(SCRIPT_DIR, "roadmap_mapping.json")
+
+def load_roadmap_mapping() -> tuple[dict, dict]:
+    """Load curated PR and Issue diagnostic metadata from JSON."""
+    if not os.path.exists(MAPPING_FILE):
+        return {}, {}
+    try:
+        with open(MAPPING_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data.get("pull_requests", {}), data.get("issues", {})
+    except Exception as e:
+        print(f"Warning: Failed to load {MAPPING_FILE}: {e}", file=sys.stderr)
+        return {}, {}
 
 def fetch_github_api(endpoint: str, params: dict = None) -> list:
     """Fetch paginated data from GitHub API."""
@@ -54,40 +69,16 @@ def get_all_issues():
     # Filter out pull requests which GitHub API includes in /issues
     return [i for i in open_issues if "pull_request" not in i]
 
-def assess_pr(pr: dict) -> tuple[str, str, str]:
+def assess_pr(pr: dict, pr_mappings: dict) -> tuple[str, str, str]:
     """Return status icon, recommended action, and roadmap phase for PR."""
-    num = pr["number"]
-    title = pr.get("title", "")
+    num_str = str(pr["number"])
     is_merged = pr.get("merged_at") is not None
     state = pr.get("state", "open")
 
-    # Known roadmap mapping
-    roadmap_map = {
-        317: ("🟢 KEEP / MERGE: Reference implementation for 'Async Control, Sync Data'", "Phase 1.1"),
-        316: ("🟢 KEEP / MERGE: Dynamic AC vs Battery platform profile memory", "Phase 2.5"),
-        314: ("🟢 KEEP / MERGE: Consolidated image pipeline under image = '=0.25.9'", "Phase 3.2"),
-        312: ("🟢 KEEP / MERGE: Re-arms XDG Global Shortcuts portal upon desktop resume", "Phase 3.3"),
-        310: ("🟠 REOPEN / MERGE: Purges obsolete asusd-user crate, units, and packaging bloat", "Phase 1.4"),
-        311: ("🟠 REOPEN / MERGE: Purges legacy examples and unneeded check/test targets", "Phase 3.4"),
-        305: ("🟢 KEEP / MERGE: Prevents panics on read-only configs (Invariant #5)", "Phase 3.4"),
-        301: ("🟢 KEEP / MERGE: Simplifies Armoury attribute persistence & boot restoration", "Phase 2.3"),
-        300: ("🟢 KEEP / MERGE: Rejects out-of-bounds Armoury tuning writes to sysfs", "Phase 2.3"),
-        296: ("🟠 REOPEN / MERGE: User-friendly crash dialogs & sanitized logs across CLI/GUI", "Phase 3.4"),
-        280: ("🟢 KEEP / MERGE: Graceful fallback when firmware lacks Quiet/Low-Power profile", "Phase 2.5"),
-        315: ("Merged into rogcc-redesign: Prepares modular pages & accessibility", "Phase 3.4"),
-        309: ("Integrated Upstream (6b6cdc63): Migrated workspace to Rust Edition 2024", "Phase 0.2"),
-        308: ("Integrated Upstream (84645b6a): Upgraded MSRV to Rust 1.85.0", "Phase 0.2"),
-        307: ("Integrated Upstream (a1322ff9): Added Aura support for ROG Strix G16 G614PP", "Phase 2.4"),
-        306: ("Integrated Upstream (31635a6f): Eliminated nested Tokio runtime startup panics", "Phase 1.1"),
-        303: ("Integrated Upstream (5307fd13): Major documentation overhaul & CLI guide", "Phase 4"),
-        299: ("Integrated Upstream (48daeaab): Adapted XDG shortcuts to KDE portal lifecycle", "Phase 3.3"),
-        298: ("Integrated Upstream (dfe4185b): Reinstated committed Cargo.lock", "Phase 0.2"),
-        297: ("Integrated Upstream (f1691584): Event-driven logind-zbus & power monitoring", "Phase 1.1"),
-        294: ("Integrated Upstream (731d772c): Passive zero-wakeup dGPU telemetry & udev scan deduplication", "Phase 1.1"),
-    }
-
-    if num in roadmap_map:
-        action, phase = roadmap_map[num]
+    if num_str in pr_mappings:
+        entry = pr_mappings[num_str]
+        action = entry.get("action", "Evaluate for roadmap integration")
+        phase = entry.get("phase", "Phase 2 / 3")
         if is_merged:
             status = "✅ **MERGED**"
         elif state == "closed":
@@ -103,13 +94,13 @@ def assess_pr(pr: dict) -> tuple[str, str, str]:
     else:
         return "🔄 **OPEN**", "Evaluate for roadmap integration", "Phase 2 / 3"
 
-def generate_pull_requests_md(open_prs: list, closed_prs: list) -> str:
+def generate_pull_requests_md(open_prs: list, closed_prs: list, pr_mappings: dict) -> str:
     """Generate markdown content for PULL_REQUESTS.md focusing on active and actionable PRs."""
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    # Keep active open PRs + specifically actionable closed PRs recommended to reopen
-    actionable_reopen_ids = {310, 311, 296}
-    reopen_prs = [p for p in closed_prs if p["number"] in actionable_reopen_ids]
+    # Keep active open PRs + specifically actionable closed PRs flagged in mapping
+    reopen_ids = {int(k) for k, v in pr_mappings.items() if v.get("reopen_candidate")}
+    reopen_prs = [p for p in closed_prs if p["number"] in reopen_ids]
     all_prs = open_prs + reopen_prs
 
     # Deduplicate by number
@@ -144,7 +135,7 @@ def generate_pull_requests_md(open_prs: list, closed_prs: list) -> str:
         title = pr.get("title", "").replace("|", "\\|")
         branch = pr.get("head", {}).get("ref", "unknown")
         url = pr.get("html_url", f"https://github.com/{REPO}/pull/{num}")
-        status, action, phase = assess_pr(pr)
+        status, action, phase = assess_pr(pr, pr_mappings)
         md.append(f"| **[#{num}]({url})** | `{title[:40]}...` | `{branch}` | {status} | **{action}** | {phase} |")
 
     md.extend([
@@ -254,7 +245,6 @@ def categorize_issue(issue: dict) -> str:
     """Classify issue into one of 6 functional categories."""
     title = issue.get("title", "").lower()
     labels = [l["name"].lower() for l in issue.get("labels", [])]
-    body = (issue.get("body") or "").lower()
 
     if any(k in title or k in labels for k in ["power", "gpu", "dgpu", "igpu", "nvml", "battery", "charge", "fan", "curve", "thermal", "throttle"]):
         return "power"
@@ -269,7 +259,7 @@ def categorize_issue(issue: dict) -> str:
     else:
         return "packaging_docs"
 
-def generate_issues_md(open_issues: list) -> str:
+def generate_issues_md(open_issues: list, issue_mappings: dict) -> str:
     """Generate markdown content for ISSUES.md containing only open issues."""
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -314,62 +304,6 @@ def generate_issues_md(open_issues: list) -> str:
 
     md.extend(["", "---", ""])
 
-    # Verification status & resolution map for all open issues
-    issue_diagnostics = {
-        318: ("⚠️ **ACTIVE BUG**", "Phase 2.1 / 2.2: Normalize kernel sysfs return codes (EEXIST / no-op writes) during shutdown sync"),
-        304: ("🟢 **IN PR (#305)**", "PR #305 / Invariant #5: Remove `.unwrap()` in config-traits; fallback gracefully when file is read-only"),
-        302: ("⚠️ **ACTIVE BUG**", "Phase 1.1 / Section 3.3: Extend zero-wakeup check to inspect entire PCI sub-tree (including GPU Audio 01:00.1)"),
-        295: ("✅ **RESOLVED UPSTREAM**", "Fixed via PR #303 (commit `5307fd13`): Added Bazzite Ally & Ally X guide"),
-        288: ("🟢 **IN PR (#317)**", "PR #317 / PR #290: Dedicated AniMe task lifecycle initialization with power state evaluation"),
-        284: ("🟢 **IN PR (#147)**", "Phase 2.4 (dmi-id) / PR #147: LampArray HID transport backend selection in rog-aura"),
-        264: ("✅ **RESOLVED UPSTREAM**", "Fixed via PR #303 (commit `5307fd13`): Added power-profiles-daemon masking recommendation"),
-        263: ("⚠️ **ACTIVE BUG**", "Phase 2.4 (dmi-id): Add FA608PP model family quirk mapping to route backlight via WMI EC registers"),
-        250: ("⚠️ **ACTIVE BUG**", "Phase 2.2: Extend rog-platform EC mailbox probe to recognize Vivobook V3607 series EC tables"),
-        245: ("💡 **FEATURE REQUEST**", "Phase 1.4: Coordinate upstream maintenance of AUR asusctl and asusctl-git packages"),
-        232: ("🟢 **IN PR (#310)**", "PR #310 / Phase 1.4: Purge asusd-user crate entirely. All clients communicate with asusd system D-Bus"),
-        229: ("✅ **RESOLVED UPSTREAM**", "Fixed in PR #315 (commit `31635a6f`): Persistent zbus::Connection proxy pool in rog-control-center"),
-        225: ("⚠️ **ACTIVE BUG**", "Phase 2.4 (dmi-id): Add Aura support for ASUS TUF Gaming A16 FA608PP"),
-        210: ("⚠️ **ACTIVE BUG**", "Phase 3.4: Decouple window close event from daemon background runtime in rog-control-center"),
-        204: ("⚠️ **ACTIVE BUG**", "Phase 2.2: EC firmware quirk on 2022 TUF models where manual fan tables reset dynamic boost budget"),
-        198: ("⚠️ **ACTIVE BUG**", "Phase 3.4 (Slint UI): Fix event bubbling in Slint TouchArea widgets across platform tuning sub-pages"),
-        196: ("⚠️ **ACTIVE BUG**", "Phase 2.5: Preserve user-configured custom curve enable states in daemon memory across ACPI switches"),
-        193: ("💡 **FEATURE REQUEST**", "Phase 3.4 (Slint UI): High-fidelity ROG dark/metallic theme & custom asset styling"),
-        169: ("✅ **RESOLVED UPSTREAM**", "Fixed in PR #307 (commit `a1322ff9`): Added Aura support for ROG Strix G16 G614PM"),
-        165: ("⚠️ **ACTIVE BUG**", "Phase 1.1 / 2.1: Maintain SCSI keep-alive polling on tablet base controller even when keyboard detaches"),
-        162: ("🟢 **IN PR (#316)**", "PR #316 / Phase 2.5: Re-apply custom fan curve tables immediately upon logind power transition events"),
-        160: ("💡 **FEATURE REQUEST**", "Phase 4: Maintain standardized cargo-deb workflow in .github/workflows/ and debian/ packaging"),
-        159: ("✅ **RESOLVED UPSTREAM**", "Fixed in commit `48daeaab`: Deduplicated GZ302 entry in aura_support.ron"),
-        153: ("⚠️ **ACTIVE BUG**", "Phase 2.2: Fallback to /sys/class/power_supply/BAT0/charge_control_end_threshold with direct WMI EC"),
-        152: ("🟢 **IN PR (#310)**", "PR #310 / Phase 1.4: Eliminate asusd-user.service to prevent dual-daemon race conditions and freeze loops"),
-        151: ("🟢 **IN PR (FA401WU)**", "Branch `FA401WU` (commit `de53c4bd`): Keyboard backlight support for ASUS TUF A14 FA401WU"),
-        148: ("🟢 **IN PR (#147)**", "PR #147 / branch `lamparray` (commit `2d0b9530`): Support TUF A16 FA608WV HID LampArray"),
-        145: ("⚠️ **ACTIVE BUG**", "Phase 2.2: Direct Intel RAPL sysfs top-level zone writes bypassing MMIO locking"),
-        136: ("⚠️ **ACTIVE BUG**", "Phase 2.5 / PR #316: Fan curve synchronization with platform profile upon boot initialization"),
-        132: ("✅ **RESOLVED UPSTREAM**", "Fixed in commit `ab1b72b6`: Skip failing Armoury attributes with `continue` instead of aborting"),
-        131: ("💡 **FEATURE REQUEST**", "Phase 2.4 (dmi-id): Add Asus ProArt Studiobook H7604JI support"),
-        130: ("💡 **FEATURE REQUEST**", "Phase 2.4 (dmi-id): Add Asus TUF A14 2025 FA401KM support"),
-        129: ("⚠️ **ACTIVE BUG**", "Phase 1.1 / 2.1: Prevent GPU tray desync by subscribing directly to udev drm event stream"),
-        124: ("💡 **FEATURE REQUEST**", "Phase 2.3 & 2.4: Continuous ingestion of verified DMI board names and TDP ranges"),
-        123: ("⚠️ **ACTIVE BUG**", "Phase 2.4: Restore discrete LED zone addressing for G513QY lightbar and keyboard"),
-        119: ("💡 **FEATURE REQUEST**", "Phase 2.4: Add RGB keyboard support for TUF Gaming A18 FA808UM (2025)"),
-        117: ("✅ **RESOLVED UPSTREAM**", "Fixed in commit `ab1b72b6`: Charge limit sysfs path and D-Bus proxy binding updated"),
-        112: ("🟢 **IN PR (#316)**", "PR #316 / Phase 2.5: Re-evaluate fan curve profile automatically upon AC/Battery transition"),
-        110: ("💡 **FEATURE REQUEST**", "Phase 2.4: Add Zenbook Duo 2025 (UX8406) detachable Bluetooth/I2C keyboard backlight support"),
-        108: ("💡 **FEATURE REQUEST**", "Phase 2.2: Add cameramute LED sysfs driver binding for Zenbook S 16 UM5606WA"),
-        107: ("💡 **FEATURE REQUEST**", "Phase 2.4: Add Asus TUF Gaming A18 DMI taxonomy profile"),
-        106: ("💡 **FEATURE REQUEST**", "Phase 2.4: Add Asus Vivobook 14 TM420UA support"),
-        103: ("⚠️ **ACTIVE BUG**", "Phase 2.2: Validate nv_temp_target sysfs node presence and write permissions on G14 2023"),
-        100: ("⚠️ **ACTIVE BUG**", "Phase 2.2: Intel RAPL / MSR TDP floor unlock on Zephyrus M16 2023"),
-        98:  ("💡 **FEATURE REQUEST**", "Phase 2.1: Add idle inactivity timer daemon hook to turn off keyboard backlight automatically"),
-        94:  ("⚠️ **ACTIVE BUG**", "Phase 1.1: Fix systemd unit dependency ordering (After=dbus.service) to guarantee startup"),
-        91:  ("💡 **FEATURE REQUEST**", "Phase 2.5: Add panel_overdrive and nv_settings into per-profile config schema"),
-        89:  ("⚠️ **ACTIVE BUG**", "Phase 3.4: Expose advanced /etc/asusd/asusd.ron settings in Slint GUI settings page"),
-        82:  ("💡 **FEATURE REQUEST**", "Phase 3.4: Trigger desktop OSD notifications via org.freedesktop.Notifications on profile cycle"),
-        70:  ("💡 **FEATURE REQUEST**", "Phase 3.2: AniMe Matrix custom GIF/APNG drag-and-drop animation loader in UI"),
-        68:  ("💡 **FEATURE REQUEST**", "Phase 2.4: Add Static and BatteryLevel modes for slash lighting controllers"),
-        25:  ("💡 **FEATURE REQUEST**", "Phase 2.4: Full support matrix integration for Zenbook Duo 2024 (UX8406)"),
-    }
-
     for idx, (cat_key, (cat_title, issues_list)) in enumerate(categories.items(), 1):
         md.extend([
             f"## {idx}. {cat_title}",
@@ -383,13 +317,18 @@ def generate_issues_md(open_issues: list) -> str:
         else:
             for issue in issues_list:
                 num = issue["number"]
+                num_str = str(num)
                 title = issue.get("title", "").replace("|", "\\|")
                 url = issue.get("html_url", f"https://github.com/{REPO}/issues/{num}")
                 labels = ", ".join(f"`{l['name']}`" for l in issue.get("labels", [])[:3]) or "`general`"
-                diag_status, res = issue_diagnostics.get(
-                    num,
-                    ("⚠️ **ACTIVE BUG**" if "bug" in labels else "💡 **FEATURE REQUEST**", "Phase 2 / 3: Refactoring roadmap tracking")
-                )
+
+                if num_str in issue_mappings:
+                    diag_status = issue_mappings[num_str].get("status", "⚠️ **ACTIVE BUG**")
+                    res = issue_mappings[num_str].get("resolution", "Phase 2 / 3: Refactoring roadmap tracking")
+                else:
+                    diag_status = "⚠️ **ACTIVE BUG**" if "bug" in labels else "💡 **FEATURE REQUEST**"
+                    res = "Phase 2 / 3: Refactoring roadmap tracking"
+
                 md.append(f"| **[#{num}]({url})** | {title[:55]}... | {labels} | {diag_status} | **{res}** |")
 
         md.extend(["", "---", ""])
@@ -405,6 +344,10 @@ def generate_issues_md(open_issues: list) -> str:
     return "\n".join(md)
 
 def main():
+    # Load curated roadmap mappings
+    pr_mappings, issue_mappings = load_roadmap_mapping()
+    print(f"Loaded {len(pr_mappings)} PR mappings and {len(issue_mappings)} Issue mappings from {MAPPING_FILE}")
+
     print(f"Fetching Pull Requests from {REPO}...")
     open_prs, closed_prs = get_all_prs()
     print(f"Fetched {len(open_prs)} open PRs and {len(closed_prs)} closed PRs.")
@@ -414,14 +357,14 @@ def main():
     print(f"Fetched {len(open_issues)} open Issues.")
 
     # Generate PULL_REQUESTS.md
-    pr_content = generate_pull_requests_md(open_prs, closed_prs)
+    pr_content = generate_pull_requests_md(open_prs, closed_prs, pr_mappings)
     pr_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PULL_REQUESTS.md")
     with open(pr_path, "w", encoding="utf-8") as f:
         f.write(pr_content)
     print(f"Updated {pr_path}")
 
     # Generate ISSUES.md
-    issue_content = generate_issues_md(open_issues)
+    issue_content = generate_issues_md(open_issues, issue_mappings)
     issue_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ISSUES.md")
     with open(issue_path, "w", encoding="utf-8") as f:
         f.write(issue_content)
