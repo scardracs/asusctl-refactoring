@@ -27,6 +27,24 @@ The remaining roadmap adopts a **pragmatic two-track strategy**:
 1. **Immediate User-Space Refactoring & Optimization**: Modernize daemon internals — eliminate remaining nested `Arc<Mutex<...>>` locks via Tokio actors to fix D-Bus deadlocks, replace the legacy `mio` thread in `aura_manager.rs` with `tokio-udev`, decouple code into a clean 3-layer architecture, migrate tooling to native Cargo workspace lints (`[workspace.lints]`), and introduce `sysfs` provider traits for non-root CI testing.
 2. **Progressive Kernel Offloading**: Opportunistically delegate low-level hardware driving to Linux kernel modules (`asus-wmi`, `asus-armoury`, `hid-asus`, `/sys/class/firmware_attributes/`) as modern kernel versions (7.0+) become widespread, keeping user-space fallback adapters modular.
 
+### 🔀 Upstream Pull Request Assessment & Roadmap Alignment
+
+An audit of all open and closed upstream pull requests (`OpenGamingCollective/asusctl/pulls`) identifies key modular contributions that align with our architectural roadmap:
+
+| PR # | Title / Area | Branch / Scope | Status | Architectural Rationale & Recommended Action |
+| :--- | :--- | :--- | :---: | :--- |
+| **[#317](https://github.com/OpenGamingCollective/asusctl/pull/317)** | `perf(anime): decouple kernel I/O` | `perf/anime-io-pipeline` | 🔄 **OPEN** | **Keep / Merge**: Reference implementation of "Async Control, Sync Data". Decouples USB HID I/O with Condvar mailbox and zero-copy D-Bus. |
+| **[#316](https://github.com/OpenGamingCollective/asusctl/pull/316)** | `feat(asusd): profile per source` | `feature/profile-per-source` | 🔄 **OPEN** | **Keep / Merge**: Remembers and restores distinct platform profiles per power supply (AC vs Battery) dynamically upon `logind` events. |
+| **[#314](https://github.com/OpenGamingCollective/asusctl/pull/314)** | `refactor: unify image decoding` | `refactor/unify-image-crate` | 🔄 **OPEN** | **Keep / Merge**: Consolidates PNG/APNG/GIF under `image = "=0.25.9"`; removes `png_pong`, `pix`, `gif`, `png`. Fulfills Phase 3.2. |
+| **[#312](https://github.com/OpenGamingCollective/asusctl/pull/312)** | `fix(rogcc): re-arm global shortcuts` | `fix/global-shortcuts-bind` | 🔄 **OPEN** | **Keep / Merge**: Re-arms XDG Global Shortcuts portal upon desktop session restore / sleep wakeup. |
+| **[#310](https://github.com/OpenGamingCollective/asusctl/pull/310)** | `refactor: remove asusd-user` | `refactor/remove-asusd-user` | ⏹️ **REOPEN / MERGE** | **Recommended to Reopen**: `asusd-user` is obsolete as all features are exposed by `asusd` on the system D-Bus. Eliminates crate bloat & dual-daemon packaging confusion. |
+| **[#311](https://github.com/OpenGamingCollective/asusctl/pull/311)** | `chore: remove obsolete examples` | `chore/remove-asusctl-examples` | ⏹️ **REOPEN / MERGE** | **Recommended to Reopen**: Cleans up outdated examples using legacy crates and reduces check/build targets. |
+| **[#305](https://github.com/OpenGamingCollective/asusctl/pull/305)** | `fix(traits): read-only config panic` | `fix/config-traits-read-only` | 🔄 **OPEN** | **Keep / Merge**: Prevents panic crashes when config files are opened in read-only mode, satisfying Invariant #5 (Zero `.unwrap()`). |
+| **[#301](https://github.com/OpenGamingCollective/asusctl/pull/301)** | `refactor(asusd): armoury persistence` | `refactor/armoury-persistence` | 🔄 **OPEN** | **Keep / Merge**: Simplifies Armoury attribute JSON serialization & boot restore logic. Core to Phase 2.3. |
+| **[#300](https://github.com/OpenGamingCollective/asusctl/pull/300)** | `fix(asusd): validate armoury tuning` | `fix/armoury-tuning-validation` | 🔄 **OPEN** | **Keep / Merge**: Validates Armoury attribute writes to prevent invalid sysfs values and boot persistence corruption. |
+| **[#296](https://github.com/OpenGamingCollective/asusctl/pull/296)** | `feat: human panic crash reports` | `feature/human-panic` | ⏹️ **REOPEN / MERGE** | **Recommended to Reopen**: Integrates user-friendly crash reporting across binaries instead of raw backtraces. |
+| **[#280](https://github.com/OpenGamingCollective/asusctl/pull/280)** | `fix: missing low-power profile` | `fix/platform-profile-fallback` | 🔄 **OPEN** | **Keep / Merge**: Handles laptops missing `Quiet`/`Low-Power` ACPI profiles without crashing daemon startup. |
+
 ---
 
 ## 🔒 Mandatory Governance & Engineering Invariants
@@ -146,6 +164,17 @@ Before undertaking major refactorings, empirical baseline metrics must be record
 * **Current Issue**: `cargo-husky` adds build-script overhead to dev dependencies for copying git hooks on build.
 * **Refactoring Proposal**: Replace `cargo-husky` with native git hooks stored in `.githooks/` and configured via `git config core.hooksPath .githooks`. Ensure CI execution is completely independent of local developer git hooks.
 
+### 1.4 Crate Consolidation: Deprecate & Purge `asusd-user` ([PR #310](https://github.com/OpenGamingCollective/asusctl/pull/310))
+
+* **Current Status & Rationale**:
+  * `asusd-user` was originally created as a per-user session daemon.
+  * In current architecture, `asusd` exposes all features (Aura, AniMe, Armoury, fan curves) directly on the system D-Bus (`/org/asuslinux/...`), and all tooling (`asusctl`, `rog-control-center`, GNOME extensions) connects exclusively to `asusd`.
+  * Maintaining `asusd-user` causes dual-daemon packaging confusion, duplicate systemd services, and workspace compile overhead.
+* **Refactoring Proposal**:
+  * Reopen and integrate [PR #310](https://github.com/OpenGamingCollective/asusctl/pull/310): delete `asusd-user/` crate, `asusd-user.service`, and update distribution packaging scripts (`PKGBUILD`, `Makefile`) with upgrade cleanup hooks (`cleanup_asusd_leftovers`).
+* **Target Benefits**:
+  * Eliminates crate bloat and packaging confusion across distros; reduces total workspace build times.
+
 ---
 
 ## Phase 2: Architectural Decoupling & Gradual Kernel Offloading
@@ -169,13 +198,13 @@ Before undertaking major refactorings, empirical baseline metrics must be record
   * Progressive code cleanup without breaking hardware compatibility on older kernels.
   * Seamless transition to kernel-native interfaces as users update their kernels.
 
-### 2.3 Armoury Attribute Management (Schema-Driven & Event Synchronization)
+### 2.3 Armoury Attribute Validation, Schema & Persistence ([PR #300](https://github.com/OpenGamingCollective/asusctl/pull/300), [PR #301](https://github.com/OpenGamingCollective/asusctl/pull/301))
 
-* **Current Issue**: Settings in `asus_armoury.rs` rely on hardcoded attribute paths and conditional branches (`if/match`). For example, Intel RAPL limits require custom logic injected directly inside generic attribute write functions.
-* **Refactoring Proposal**: Define a Publisher-Subscriber event system for firmware attributes:
-  * All attributes are enumerated in a centralized registry at boot.
-  * Any attribute update emits an asynchronous `AttributeChanged` event.
-  * Decoupled subscriber modules (e.g. `IntelPowerSync`) listen to events and handle side-effects without polluting core attribute logic.
+* **Current Issue**: Direct writes to `/sys/class/firmware_attributes/asus-armoury/attributes/` lack input bounds checking and error self-healing, risking corrupt JSON state in `/var/lib/asusd/armoury.json` and boot failure loops on unapplicable attributes.
+* **Refactoring Proposal**:
+  * Merge [PR #300](https://github.com/OpenGamingCollective/asusctl/pull/300) to reject invalid attribute values before writing to sysfs.
+  * Merge [PR #301](https://github.com/OpenGamingCollective/asusctl/pull/301) to simplify Armoury attribute JSON serialization and self-healing state restoration.
+  * Implement Publisher-Subscriber event synchronization: updating an attribute emits an asynchronous `AttributeChanged` event, allowing decoupled handlers (e.g. `IntelPowerSync`) to respond without polluting core attribute logic.
 
 ### 2.4 Device Identification, DMI Taxonomy & Hardware Quirks Engine (`dmi-id` Modernization)
 
@@ -190,6 +219,12 @@ Before undertaking major refactorings, empirical baseline metrics must be record
   * Eliminates model parsing duplication and fragile string matching across the workspace.
   * Enables offline unit and integration testing of model-specific behavior in CI.
   * Sits cleanly between driver detection and daemon policy dispatch.
+
+### 2.5 Power Policy & Platform Profile per Power Source ([PR #316](https://github.com/OpenGamingCollective/asusctl/pull/316), [PR #280](https://github.com/OpenGamingCollective/asusctl/pull/280))
+
+* **Refactoring Proposal**:
+  * **Dynamic AC/Battery Profile Switching ([PR #316](https://github.com/OpenGamingCollective/asusctl/pull/316))**: Track and restore preferred platform profiles independently for AC and Battery power sources, seamlessly transitioning via `logind` power supply events.
+  * **Missing ACPI Profile Graceful Fallback ([PR #280](https://github.com/OpenGamingCollective/asusctl/pull/280))**: Prevent daemon startup failures on models where firmware omits the `Quiet` or `Low-Power` profile.
 
 ---
 
@@ -238,6 +273,9 @@ Before undertaking major refactorings, empirical baseline metrics must be record
 ### 3.4 Ergonomic Types & CLI Modernization
 
 * **CLI Framework (`asusctl`)**: Migrate from `argh` to `clap` (v4 with derive) for improved subcommands, value validation, interactive table rendering (`tabled`), shell completions (`clap_complete`), and man pages.
+* **Safe Configuration Loading ([PR #305](https://github.com/OpenGamingCollective/asusctl/pull/305))**: Ensure config file readers gracefully handle read-only filesystems or unprivileged read permissions without panicking.
+* **Crash Reporting Ergonomics ([PR #296](https://github.com/OpenGamingCollective/asusctl/pull/296))**: Integrate `human-panic` across binaries (`asusctl`, `rog-control-center`, `asusd`) to present user-friendly error dialogs and log dumps rather than raw stacktraces.
+* **Orphan Example & Target Cleanup ([PR #311](https://github.com/OpenGamingCollective/asusctl/pull/311))**: Purge obsolete standalone examples in `asusctl/examples/` and dev-dependencies to streamline compilation targets.
 * **Enum Conversions (`strum`)**: Apply `strum` to purely syntactic string-to-enum conversions (e.g. `AuraModeNum`).
 * **Hardware Capability Flags (`bitflags`)**: Replace raw capability integers and boolean flags with strongly-typed `bitflags` structs for keyboard lighting zones and power modes.
 * **Procfs Reading (`rog-platform`)**: Replace manual string parsing loops in `/proc/` with `procfs` for reading CPU and thermal information.
@@ -348,14 +386,21 @@ Rather than removing the async executor, maximizing Tokio's performance requires
 | **Rust 1.85 & Edition 2024** | ✅ **INTEGRATED UPSTREAM** | — | Upgraded workspace MSRV to 1.85 & Edition 2024 across all crates (`84645b6a`, `6b6cdc63`, `dfe4185b`). |
 | **`[workspace.lints.clippy]`** | 🟢 **APPROVED** | 🔴 **P0** | Native Cargo workspace lint policy replacing `Cranky.toml`. |
 | **`cargo-husky` → `.githooks`** | 🟢 **APPROVED** | 🟠 **P1** | Native git hooks script; decouples CI from local dev build hooks. |
+| **Deprecate & Purge `asusd-user`** | ⏹️ **REOPEN / MERGE ([#310](https://github.com/OpenGamingCollective/asusctl/pull/310))** | 🟠 **P1** | Removes obsolete user daemon crate, dual services, and packaging bloat. |
 | **Udev Async Streams (`tokio-udev`) & `mio` Purge** | 🟢 **APPROVED** | 🟠 **P1** | Replaces blocking `mio` threads in `aura_manager.rs` & `start_power_monitor`; removes `mio` dependency and nested Tokio runtimes. |
 | **Unified Image Pipeline (`image`)** | 🔄 **PR OPEN ([#314](https://github.com/OpenGamingCollective/asusctl/pull/314))** | 🟠 **P1** | Unified PNG/APNG/GIF decoding under `image = "=0.25.9"`; purges `png_pong`, `pix`, `gif`, and `png`. |
 | **AniMe Kernel I/O Decoupling** | 🔄 **PR OPEN ([#317](https://github.com/OpenGamingCollective/asusctl/pull/317))** | 🟠 **P1** | Decouples USB HID I/O with Condvar mailbox worker thread, FIFO queue, `&AnimeDataBuffer` zero-copy proxy, frame pre-computation. |
+| **Armoury Validation & Persistence** | 🔄 **PR OPEN ([#300](https://github.com/OpenGamingCollective/asusctl/pull/300), [#301](https://github.com/OpenGamingCollective/asusctl/pull/301))** | 🟠 **P1** | Rejects invalid attribute values and simplifies JSON state serialization & boot restoration. |
+| **Platform Profile per Power Source** | 🔄 **PR OPEN ([#316](https://github.com/OpenGamingCollective/asusctl/pull/316))** | 🟠 **P1** | Independent AC / Battery profile memory and automatic switching on power transitions. |
+| **Missing ACPI Profile Fallback** | 🔄 **PR OPEN ([#280](https://github.com/OpenGamingCollective/asusctl/pull/280))** | 🟠 **P1** | Graceful fallback when firmware lacks Quiet/Low-Power profiles to prevent daemon crashes. |
+| **Safe Config Loading (Read-Only)** | 🔄 **PR OPEN ([#305](https://github.com/OpenGamingCollective/asusctl/pull/305))** | 🟠 **P1** | Prevents crashes when reading configs on read-only filesystems or restricted permissions. |
 | **`zerocopy`** | 🟢 **APPROVED (PoC Narrow)** | 🟠 **P1** | Type-safe USB HID 640-byte packet definition in `rog-anime` & `rog-aura`. |
 | **Device Identity Engine (`dmi-id`)** | 🟢 **APPROVED** | 🟠 **P1** | Centralize DMI taxonomy & model parsing; eliminate duplicate `board_name` matching; add sysfs fallback & mockability. |
 | **`argh` → `clap` (v4)** | 🟢 **APPROVED (Bench First)** | 🟠 **P1** | CLI overhaul for `asusctl` (subcommands, completions, validation). |
 | **`strum`** | 🟢 **APPROVED (Targeted)** | 🟠 **P1** | Replaces duplicate string/enum matches for syntactic enums (`AuraModeNum`). |
 | **`bitflags`** | 🟢 **APPROVED (Targeted)** | 🟠 **P1** | Typed bitmasks for hardware capability zones and power features. |
+| **`human-panic` Crash Reports** | ⏹️ **REOPEN / MERGE ([#296](https://github.com/OpenGamingCollective/asusctl/pull/296))** | 🟡 **P2** | User-friendly crash dialogs and sanitized crash logs across binaries. |
+| **Global Shortcuts Grab on Restore** | 🔄 **PR OPEN ([#312](https://github.com/OpenGamingCollective/asusctl/pull/312))** | 🟡 **P2** | Re-arms XDG global shortcut portals in `rog-control-center` upon desktop resume. |
 | **`tracing`** | 🟢 **APPROVED (Phased)** | 🟡 **P2** | Structured async tracing for D-Bus requests, udev, and state transitions. |
 | **`SysfsProvider` Mocking** | 🟢 **APPROVED** | 🟡 **P2** | Trait-based sysfs abstraction for non-root CI and hardware simulation. |
 | **`tabled`** | ⚪ **OPTIONAL UX** | 🟡 **P2** | Formatted table output for `asusctl` CLI status commands. |
