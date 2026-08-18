@@ -1,0 +1,53 @@
+name: Daily Sync Upstream PRs & Issues
+
+on:
+  schedule:
+    # Run every day at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allows manual trigger anytime from Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  sync-upstream:
+    name: Sync Upstream Catalog
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run synchronization script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/sync_upstream_status.py
+          python3 scripts/sync_upstream_status.py
+
+      - name: Check for changes
+        id: git_diff
+        run: |
+          if [ -n "$(git status --porcelain PULL_REQUESTS.md ISSUES.md)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Detected updates in upstream PRs or Issues."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No upstream changes detected."
+          fi
+
+      - name: Commit and push updates
+        if: steps.git_diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PULL_REQUESTS.md ISSUES.md
+          git commit -m "chore(sync): daily update of upstream PRs and issues [skip ci]"
+          git push
