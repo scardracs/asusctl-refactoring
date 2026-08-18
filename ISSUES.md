@@ -1,6 +1,6 @@
 # 🐛 Active Upstream Issues & Roadmap Mapping
 
-> *Last automated synchronization: 2026-08-18 15:59 UTC*
+> *Last automated synchronization: 2026-08-18 16:00 UTC*
 
 This document provides an automated classification of all **active open issues** from [`OpenGamingCollective/asusctl`](https://github.com/OpenGamingCollective/asusctl/issues).
 
