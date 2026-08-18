@@ -2,7 +2,7 @@
 """
 Sync Upstream Status Script for asusctl-refactoring.
 
-Fetches open and closed pull requests and issues from OpenGamingCollective/asusctl
+Fetches open pull requests and issues from OpenGamingCollective/asusctl
 and regenerates PULL_REQUESTS.md and ISSUES.md.
 """
 
@@ -314,36 +314,67 @@ def generate_issues_md(open_issues: list) -> str:
 
     md.extend(["", "---", ""])
 
-    # Detailed issue mappings
-    resolution_map = {
-        318: "Phase 2.1 / 2.2: Normalize kernel sysfs return codes (EEXIST / no-op writes) during shutdown sync.",
-        304: "Invariant #5 & PR #305: Remove `.unwrap()` in config-traits; fallback gracefully when file is read-only.",
-        302: "Phase 1.1 / Section 3.3: Extend zero-wakeup check to inspect entire PCI sub-tree (including GPU Audio 01:00.1).",
-        295: "Docs: Document Handheld daemon integration and Bazzite ujust automation.",
-        288: "Phase 1.1 / PR #317: Dedicated AniMe task lifecycle initialization with power state evaluation.",
-        284: "Phase 2.4 (dmi-id) & Phase 2.1: Add LampArray HID transport backend selection in rog-aura when WMI returns 0.",
-        264: "Phase 2.5 & Docs: Update distribution setup guides with explicit power-profiles-daemon masking instructions.",
-        263: "Phase 2.4 (dmi-id): Add FA608PP model family quirk mapping to route backlight via standard WMI EC registers.",
-        250: "Phase 2.2: Extend rog-platform EC mailbox probe to recognize Vivobook V3607 series EC tables.",
-        245: "Phase 1.4: Coordinate upstream maintenance of AUR asusctl and asusctl-git packages with cleanup_asusd_leftovers.",
-        232: "Phase 1.4 / PR #310: Purge asusd-user crate entirely. All clients communicate with asusd system D-Bus paths.",
-        229: "Phase 1.1 / 'Async Control, Sync Data': Standardize on a single, long-lived zbus::Connection proxy pool.",
-        210: "Phase 3.4: Ensure application event loop respects normal window close events rather than terminating on hidden state.",
-        204: "Phase 2.2: EC firmware quirk on 2022 TUF models where manual fan tables reset dynamic boost budget.",
-        198: "Phase 3.4 (Slint UI): Fix event bubbling in Slint TouchArea widgets across platform tuning sub-pages.",
-        196: "Phase 2.5: Preserve user-configured custom curve enable states in daemon memory across ACPI profile switches.",
-        165: "Phase 1.1 / 2.1: Maintain SCSI keep-alive polling on tablet base controller even when detachable keyboard disconnects.",
-        162: "Phase 2.5 / PR #316: Re-apply custom fan curve tables immediately upon logind power source transition events.",
-        159: "Phase 2.4 (dmi-id): Deduplicate RON configuration schemas and validate RON files with unit test linters in CI.",
-        153: "Phase 2.2: Fallback to /sys/class/power_supply/BAT0/charge_control_end_threshold with direct WMI EC verification.",
-        152: "Phase 1.4 / PR #310: Eliminate asusd-user.service to prevent dual-daemon race conditions and desktop freeze loops.",
+    # Verification status & resolution map for all open issues
+    issue_diagnostics = {
+        318: ("⚠️ **ACTIVE BUG**", "Phase 2.1 / 2.2: Normalize kernel sysfs return codes (EEXIST / no-op writes) during shutdown sync"),
+        304: ("🟢 **IN PR (#305)**", "PR #305 / Invariant #5: Remove `.unwrap()` in config-traits; fallback gracefully when file is read-only"),
+        302: ("⚠️ **ACTIVE BUG**", "Phase 1.1 / Section 3.3: Extend zero-wakeup check to inspect entire PCI sub-tree (including GPU Audio 01:00.1)"),
+        295: ("✅ **RESOLVED UPSTREAM**", "Fixed via PR #303 (commit `5307fd13`): Added Bazzite Ally & Ally X guide"),
+        288: ("🟢 **IN PR (#317)**", "PR #317 / PR #290: Dedicated AniMe task lifecycle initialization with power state evaluation"),
+        284: ("🟢 **IN PR (#147)**", "Phase 2.4 (dmi-id) / PR #147: LampArray HID transport backend selection in rog-aura"),
+        264: ("✅ **RESOLVED UPSTREAM**", "Fixed via PR #303 (commit `5307fd13`): Added power-profiles-daemon masking recommendation"),
+        263: ("⚠️ **ACTIVE BUG**", "Phase 2.4 (dmi-id): Add FA608PP model family quirk mapping to route backlight via WMI EC registers"),
+        250: ("⚠️ **ACTIVE BUG**", "Phase 2.2: Extend rog-platform EC mailbox probe to recognize Vivobook V3607 series EC tables"),
+        245: ("💡 **FEATURE REQUEST**", "Phase 1.4: Coordinate upstream maintenance of AUR asusctl and asusctl-git packages"),
+        232: ("🟢 **IN PR (#310)**", "PR #310 / Phase 1.4: Purge asusd-user crate entirely. All clients communicate with asusd system D-Bus"),
+        229: ("✅ **RESOLVED UPSTREAM**", "Fixed in PR #315 (commit `31635a6f`): Persistent zbus::Connection proxy pool in rog-control-center"),
+        225: ("⚠️ **ACTIVE BUG**", "Phase 2.4 (dmi-id): Add Aura support for ASUS TUF Gaming A16 FA608PP"),
+        210: ("⚠️ **ACTIVE BUG**", "Phase 3.4: Decouple window close event from daemon background runtime in rog-control-center"),
+        204: ("⚠️ **ACTIVE BUG**", "Phase 2.2: EC firmware quirk on 2022 TUF models where manual fan tables reset dynamic boost budget"),
+        198: ("⚠️ **ACTIVE BUG**", "Phase 3.4 (Slint UI): Fix event bubbling in Slint TouchArea widgets across platform tuning sub-pages"),
+        196: ("⚠️ **ACTIVE BUG**", "Phase 2.5: Preserve user-configured custom curve enable states in daemon memory across ACPI switches"),
+        193: ("💡 **FEATURE REQUEST**", "Phase 3.4 (Slint UI): High-fidelity ROG dark/metallic theme & custom asset styling"),
+        169: ("✅ **RESOLVED UPSTREAM**", "Fixed in PR #307 (commit `a1322ff9`): Added Aura support for ROG Strix G16 G614PM"),
+        165: ("⚠️ **ACTIVE BUG**", "Phase 1.1 / 2.1: Maintain SCSI keep-alive polling on tablet base controller even when keyboard detaches"),
+        162: ("🟢 **IN PR (#316)**", "PR #316 / Phase 2.5: Re-apply custom fan curve tables immediately upon logind power transition events"),
+        160: ("💡 **FEATURE REQUEST**", "Phase 4: Maintain standardized cargo-deb workflow in .github/workflows/ and debian/ packaging"),
+        159: ("✅ **RESOLVED UPSTREAM**", "Fixed in commit `48daeaab`: Deduplicated GZ302 entry in aura_support.ron"),
+        153: ("⚠️ **ACTIVE BUG**", "Phase 2.2: Fallback to /sys/class/power_supply/BAT0/charge_control_end_threshold with direct WMI EC"),
+        152: ("🟢 **IN PR (#310)**", "PR #310 / Phase 1.4: Eliminate asusd-user.service to prevent dual-daemon race conditions and freeze loops"),
+        151: ("🟢 **IN PR (FA401WU)**", "Branch `FA401WU` (commit `de53c4bd`): Keyboard backlight support for ASUS TUF A14 FA401WU"),
+        148: ("🟢 **IN PR (#147)**", "PR #147 / branch `lamparray` (commit `2d0b9530`): Support TUF A16 FA608WV HID LampArray"),
+        145: ("⚠️ **ACTIVE BUG**", "Phase 2.2: Direct Intel RAPL sysfs top-level zone writes bypassing MMIO locking"),
+        136: ("⚠️ **ACTIVE BUG**", "Phase 2.5 / PR #316: Fan curve synchronization with platform profile upon boot initialization"),
+        132: ("✅ **RESOLVED UPSTREAM**", "Fixed in commit `ab1b72b6`: Skip failing Armoury attributes with `continue` instead of aborting"),
+        131: ("💡 **FEATURE REQUEST**", "Phase 2.4 (dmi-id): Add Asus ProArt Studiobook H7604JI support"),
+        130: ("💡 **FEATURE REQUEST**", "Phase 2.4 (dmi-id): Add Asus TUF A14 2025 FA401KM support"),
+        129: ("⚠️ **ACTIVE BUG**", "Phase 1.1 / 2.1: Prevent GPU tray desync by subscribing directly to udev drm event stream"),
+        124: ("💡 **FEATURE REQUEST**", "Phase 2.3 & 2.4: Continuous ingestion of verified DMI board names and TDP ranges"),
+        123: ("⚠️ **ACTIVE BUG**", "Phase 2.4: Restore discrete LED zone addressing for G513QY lightbar and keyboard"),
+        119: ("💡 **FEATURE REQUEST**", "Phase 2.4: Add RGB keyboard support for TUF Gaming A18 FA808UM (2025)"),
+        117: ("✅ **RESOLVED UPSTREAM**", "Fixed in commit `ab1b72b6`: Charge limit sysfs path and D-Bus proxy binding updated"),
+        112: ("🟢 **IN PR (#316)**", "PR #316 / Phase 2.5: Re-evaluate fan curve profile automatically upon AC/Battery transition"),
+        110: ("💡 **FEATURE REQUEST**", "Phase 2.4: Add Zenbook Duo 2025 (UX8406) detachable Bluetooth/I2C keyboard backlight support"),
+        108: ("💡 **FEATURE REQUEST**", "Phase 2.2: Add cameramute LED sysfs driver binding for Zenbook S 16 UM5606WA"),
+        107: ("💡 **FEATURE REQUEST**", "Phase 2.4: Add Asus TUF Gaming A18 DMI taxonomy profile"),
+        106: ("💡 **FEATURE REQUEST**", "Phase 2.4: Add Asus Vivobook 14 TM420UA support"),
+        103: ("⚠️ **ACTIVE BUG**", "Phase 2.2: Validate nv_temp_target sysfs node presence and write permissions on G14 2023"),
+        100: ("⚠️ **ACTIVE BUG**", "Phase 2.2: Intel RAPL / MSR TDP floor unlock on Zephyrus M16 2023"),
+        98:  ("💡 **FEATURE REQUEST**", "Phase 2.1: Add idle inactivity timer daemon hook to turn off keyboard backlight automatically"),
+        94:  ("⚠️ **ACTIVE BUG**", "Phase 1.1: Fix systemd unit dependency ordering (After=dbus.service) to guarantee startup"),
+        91:  ("💡 **FEATURE REQUEST**", "Phase 2.5: Add panel_overdrive and nv_settings into per-profile config schema"),
+        89:  ("⚠️ **ACTIVE BUG**", "Phase 3.4: Expose advanced /etc/asusd/asusd.ron settings in Slint GUI settings page"),
+        82:  ("💡 **FEATURE REQUEST**", "Phase 3.4: Trigger desktop OSD notifications via org.freedesktop.Notifications on profile cycle"),
+        70:  ("💡 **FEATURE REQUEST**", "Phase 3.2: AniMe Matrix custom GIF/APNG drag-and-drop animation loader in UI"),
+        68:  ("💡 **FEATURE REQUEST**", "Phase 2.4: Add Static and BatteryLevel modes for slash lighting controllers"),
+        25:  ("💡 **FEATURE REQUEST**", "Phase 2.4: Full support matrix integration for Zenbook Duo 2024 (UX8406)"),
     }
 
     for idx, (cat_key, (cat_title, issues_list)) in enumerate(categories.items(), 1):
         md.extend([
             f"## {idx}. {cat_title}",
             "",
-            "| Issue # | Title | Subsystems | Status | Architectural Resolution & Roadmap Link |",
+            "| Issue # | Title | Subsystems | Status / Fix Verification | Architectural Resolution & Roadmap Link |",
             "| :--- | :--- | :--- | :---: | :--- |",
         ])
 
@@ -355,8 +386,11 @@ def generate_issues_md(open_issues: list) -> str:
                 title = issue.get("title", "").replace("|", "\\|")
                 url = issue.get("html_url", f"https://github.com/{REPO}/issues/{num}")
                 labels = ", ".join(f"`{l['name']}`" for l in issue.get("labels", [])[:3]) or "`general`"
-                res = resolution_map.get(num, "Phase 2 / 3: Refactoring roadmap tracking")
-                md.append(f"| **[#{num}]({url})** | {title[:55]}... | {labels} | 🔄 **OPEN** | **{res}** |")
+                diag_status, res = issue_diagnostics.get(
+                    num,
+                    ("⚠️ **ACTIVE BUG**" if "bug" in labels else "💡 **FEATURE REQUEST**", "Phase 2 / 3: Refactoring roadmap tracking")
+                )
+                md.append(f"| **[#{num}]({url})** | {title[:55]}... | {labels} | {diag_status} | **{res}** |")
 
         md.extend(["", "---", ""])
 
