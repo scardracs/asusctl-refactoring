@@ -1,6 +1,6 @@
 # 🐛 Active Upstream Issues & Roadmap Mapping
 
-> *Last automated synchronization: 2026-08-18 16:19 UTC*
+> *Last automated synchronization: 2026-08-19 06:39 UTC*
 
 This document provides an automated classification of all **active open issues** from [`OpenGamingCollective/asusctl`](https://github.com/OpenGamingCollective/asusctl/issues).
 
@@ -58,6 +58,7 @@ Issues are categorized by subsystem and functional domain, detailing their root 
 
 | Issue # | Title | Subsystems | Status / Fix Verification | Architectural Resolution & Roadmap Link |
 | :--- | :--- | :--- | :---: | :--- |
+| **[#319](https://github.com/OpenGamingCollective/asusctl/issues/319)** | asusd SIGABRT on GA503RM — unsymbolized abort in main t... | `bug`, `asusd`, `asusd-user` | ⚠️ **ACTIVE BUG** | **Phase 2 / 3: Upstream issue triage & investigation** |
 | **[#304](https://github.com/OpenGamingCollective/asusctl/issues/304)** | [Bug]: rog-control-center panics when config file is re... | `bug`, `rog-control-center` | 🟢 **IN PR (#305)** | **PR #305 / Invariant #5: Remove `.unwrap()` in config-traits; fallback gracefully when file is read-only** |
 | **[#159](https://github.com/OpenGamingCollective/asusctl/issues/159)** | rog-control-center panics on GZ302: duplicate entry in ... | `general` | ✅ **RESOLVED UPSTREAM** | **Fixed in commit `48daeaab`: Deduplicated GZ302 entry in aura_support.ron** |
 
@@ -100,9 +101,10 @@ Issues are categorized by subsystem and functional domain, detailing their root 
 
 | Issue # | Title | Subsystems | Status / Fix Verification | Architectural Resolution & Roadmap Link |
 | :--- | :--- | :--- | :---: | :--- |
+| **[#320](https://github.com/OpenGamingCollective/asusctl/issues/320)** | [Bug]: XG Mobile live enable hangs on GV301QH unless pc... | `bug`, `rog-platform`, `kernel` | ⚠️ **ACTIVE BUG** | **Phase 2 / 3: Upstream issue triage & investigation** |
 | **[#131](https://github.com/OpenGamingCollective/asusctl/issues/131)** | Proart H7604JI support... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.4 (dmi-id): Add Asus ProArt Studiobook H7604JI support** |
 | **[#130](https://github.com/OpenGamingCollective/asusctl/issues/130)** | Add Asus TUF A14 2025 FA401KM to supported devices... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.4 (dmi-id): Add Asus TUF A14 2025 FA401KM support** |
-| **[#124](https://github.com/OpenGamingCollective/asusctl/issues/124)** | PPT data collection thread... | `enhancement`, `rog-platform`, `kernel` | 💡 **FEATURE REQUEST** | **Phase 2.3 & 2.4: Continuous ingestion of verified DMI board names and TDP ranges** |
+| **[#124](https://github.com/OpenGamingCollective/asusctl/issues/124)** | PPT data collection thread... | `enhancement`, `asusd`, `rog-platform` | 💡 **FEATURE REQUEST** | **Phase 2.3 & 2.4: Continuous ingestion of verified DMI board names and TDP ranges** |
 | **[#107](https://github.com/OpenGamingCollective/asusctl/issues/107)** | Please add support to Asus Tuf Gaming A18... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.4: Add Asus TUF Gaming A18 DMI taxonomy profile** |
 | **[#106](https://github.com/OpenGamingCollective/asusctl/issues/106)** | Support Request - Asus Vivobook 14 (TM420ua) ((ryzen 55... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.4: Add Asus Vivobook 14 TM420UA support** |
 | **[#103](https://github.com/OpenGamingCollective/asusctl/issues/103)** | nv_temp_target doesnt work on g14 (2023)... | `general` | ⚠️ **ACTIVE BUG** | **Phase 2.2: Validate nv_temp_target sysfs node presence and write permissions on G14 2023** |

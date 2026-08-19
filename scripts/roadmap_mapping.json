@@ -112,6 +112,14 @@
     }
   },
   "issues": {
+    "320": {
+      "status": "⚠️ **ACTIVE BUG**",
+      "resolution": "Phase 2 / 3: Upstream issue triage & investigation"
+    },
+    "319": {
+      "status": "⚠️ **ACTIVE BUG**",
+      "resolution": "Phase 2 / 3: Upstream issue triage & investigation"
+    },
     "318": {
       "status": "⚠️ **ACTIVE BUG**",
       "resolution": "Phase 2.1 / 2.2: Normalize kernel sysfs return codes (EEXIST / no-op writes) during shutdown sync"
