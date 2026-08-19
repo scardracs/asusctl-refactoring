@@ -24,7 +24,7 @@ Recent upstream releases (v6.4.0+) have already resolved several initial pain po
 
 The remaining roadmap adopts a **pragmatic two-track strategy**:
 
-1. **Immediate User-Space Refactoring & Optimization**: Modernize daemon internals — eliminate remaining nested `Arc<Mutex<...>>` locks via Tokio actors to fix D-Bus deadlocks, replace the legacy `mio` thread in `aura_manager.rs` with `tokio-udev`, decouple code into a clean 3-layer architecture, migrate tooling to native Cargo workspace lints (`[workspace.lints]`), and introduce `sysfs` provider traits for non-root CI testing.
+1. **Immediate User-Space Refactoring & Optimization**: Modernize daemon internals — eliminate remaining nested `Arc<Mutex<...>>` locks via Tokio actors to fix D-Bus deadlocks, replace the legacy `mio` thread and nested Tokio runtimes in `aura_manager.rs` and `start_power_monitor` with a dedicated synchronous udev worker thread and asynchronous mailbox (`mpsc::channel`), purging the `mio` dependency without adding external stream crates, decouple code into a clean 3-layer architecture, migrate tooling to native Cargo workspace lints (`[workspace.lints]`), and introduce `sysfs` provider traits for non-root CI testing.
 2. **Progressive Kernel Offloading**: Opportunistically delegate low-level hardware driving to Linux kernel modules (`asus-wmi`, `asus-armoury`, `hid-asus`, `/sys/class/firmware_attributes/`) as modern kernel versions (7.0+) become widespread, keeping user-space fallback adapters modular.
 
 > 📚 **Dedicated Upstream Companion Catalogs**:
@@ -83,7 +83,7 @@ All refactoring tasks and PRs must strictly comply with the following invariants
 ├───────────────────────────────────────────────────────────────────────────┤
 │  ├── 3.1 USB HID Wire Protocol Safety (`zerocopy`)                        │
 │  ├── 3.2 PNG & Raster Pipeline Modernization (`rog-anime` image migration)│
-│  ├── 3.3 Async Hardware Event Stream (`aura_manager.rs` -> `tokio-udev`)  │
+│  ├── 3.3 Hardware Event Stream & Mailbox (`aura_manager.rs` -> Udev Worker) │
 │  └── 3.4 Ergonomic Types & CLI Modernization (`clap` v4, `strum`, flags)  │
 └───────────────────────────────────┬───────────────────────────────────────┘
                                     │
@@ -236,7 +236,7 @@ Before undertaking major refactorings, empirical baseline metrics must be record
   * Eliminates 4 redundant image crates (`png_pong`, `pix`, `gif`, `png`).
   * Verified against golden pixel oracle tests for color luminance, alpha blending, and APNG frame compositing.
 
-### 3.3 Async Hardware Event Stream & Task Lifecycle Modernization (`tokio-udev` & `mio` Purge)
+### 3.3 Hardware Event Stream & Task Lifecycle Modernization (Udev Sync Worker + Mailbox Channel & `mio` Purge)
 
 * **Current Issue**:
   * In `aura_manager.rs:L583-612`, a dedicated OS thread runs a `mio` polling loop on udev, creates an **entire nested Tokio runtime** (`Runtime::new()`), and calls `rt.block_on(...)` inside the loop for dynamic D-Bus device additions/removals.
@@ -244,15 +244,17 @@ Before undertaking major refactorings, empirical baseline metrics must be record
   * The workspace pulls `mio = "^1.2.2"` and `udev = { ..., features = ["mio"] }` solely for these two manual polling loops.
   * Several background loops across the workspace simulate synchronous behavior within async tasks via `AtomicBool` flags (`while running.load(...) { tokio::time::sleep(...) }`) or perform blocking syscalls directly on the async executor.
 * **Refactoring Proposal**:
-  * **Unified Asynchronous Udev Streams (`tokio-udev` / `tokio::io::unix::AsyncFd`)**:
-    * Wrap `udev::MonitorSocket` in an asynchronous stream (`Stream<Item = udev::Event>`) executed directly on Tokio's native epoll reactor.
-    * Migrate both `aura_manager.rs` (Aura/SCSI device hotplug) and `start_power_monitor` (power supply transitions) to native async streams.
+  * **Udev Sync Worker Thread with Tokio Mailbox Channel (`tokio::sync::mpsc`)**:
+    * Spawn a lightweight, dedicated synchronous OS thread that listens directly to the kernel's netlink udev socket (`udev::MonitorBuilder::new()?.listen()?`) via blocking syscalls.
+    * **Zero Idle CPU Overhead**: The thread sleeps passively inside kernel netlink `recv`/`poll` with zero timer wakeups and wakes up strictly when the kernel emits a physical hardware event (`add`, `remove`, `change`).
+    * **Mailbox Event Dispatch**: When a device event occurs (e.g. Aura USB device plugged/unplugged, SCSI device node change, power supply transition), the worker parses the event into a strongly-typed `DeviceHotplugEvent` enum and sends it over a bounded asynchronous channel (`tokio::sync::mpsc::Sender<DeviceHotplugEvent>`).
+    * **Zero Additional External Crates**: Avoids introducing `tokio-udev` or complex `AsyncFd` polling logic, perfectly embodying the *"Async Control, Sync Data"* paradigm (synchronous kernel socket listening on an OS worker, asynchronous actor state management on Tokio).
     * **Purge `mio` Dependency**: Completely remove `mio = "^1.2.2"` and `udev`'s `mio` feature flag from workspace dependencies.
     * **Eliminate Nested Runtimes**: Eradicate secondary `tokio::runtime::Runtime` instantiations and blocking calls.
   * **Workspace-Wide Elimination of `AtomicBool` Polling**: Replace all manual `AtomicBool` polling loops across `asusd`, `asusd-user`, and `rog-control-center` with `tokio_util::sync::CancellationToken`, `tokio::sync::watch`, and `tokio::select!` for clean, instant, cooperative task cancellation and hot-reload.
   * **Strict Isolation of Blocking I/O**: Guarantee that no task executing on Tokio performs blocking syscalls; all blocking work must be dispatched to sync worker threads or `tokio::task::spawn_blocking` (for one-off FS ops).
 * **Target Benefits**:
-  * Completely eliminates dedicated blocking `mio` threads, nested runtime instantiations, and the `mio` workspace dependency.
+  * Completely eliminates dedicated blocking `mio` threads, nested runtime instantiations, and the `mio` workspace dependency without adding new third-party async stream crates.
   * Eliminates timer wakeups caused by artificial polling loops, minimizing idle CPU usage and battery drain.
   * Deterministic, zero-overhead task lifecycle management during device hot-unplug and daemon reloads.
 
@@ -306,7 +308,7 @@ Rather than an arbitrary hybrid, the decoupled model is the **idiomatic Rust sys
 │                                                                             │
 │   ┌─────────────────┐       ┌────────────────────┐    ┌─────────────────┐   │
 │   │  D-Bus (zbus)   │       │ Animation Timers / │    │  System Events  │   │
-│   │ System Service  │       │ Frame Schedulers   │    │  (tokio-udev)   │   │
+│   │ System Service  │       │ Frame Schedulers   │    │  (Udev Mailbox Rx)│   │
 │   └────────┬────────┘       └─────────┬──────────┘    └────────┬────────┘   │
 │            │                          │                        │            │
 │            ▼                          ▼                        ▼            │
@@ -325,14 +327,15 @@ Rather than an arbitrary hybrid, the decoupled model is the **idiomatic Rust sys
 │   │ Dedicated Sync Worker Thread (std::thread / Mailbox)                │   │
 │   │                                                                     │   │
 │   │  • Uninterruptible blocking USB HID writes (rusb / hidraw)          │   │
-│   │  • Blocking sysfs / WMI kernel file operations                      │   │
+│   │  • Blocking sysfs / WMI kernel file operations                      │
+│   │  • Blocking kernel netlink udev socket listener (Mailbox Tx)        │   │
 │   │  • Zero latency jitter leaked to Tokio async reactor                │   │
 │   └─────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 1. **Tokio Control Plane (Network & System Coordination)**:
-   - **Scope**: D-Bus daemon endpoints (`zbus`), animation frame tick timers (`tokio::time::interval`), configuration file watching, system signals (`logind-zbus`, `tokio-udev`), and client request validation.
+   - **Scope**: D-Bus daemon endpoints (`zbus`), animation frame tick timers (`tokio::time::interval`), configuration file watching, system signals (`logind-zbus`, udev mailbox receiver channel), and client request validation.
    - **Characteristics**: Ultra-lightweight passive event waiting. Handles concurrent client calls without blocking.
 2. **Mailbox / OS Thread Worker Plane (Hardware Data I/O)**:
    - **Scope**: Low-level USB HID transfers (`rog-anime`, `rog-aura`), raw SCSI commands (`rog-scsi`), and sysfs kernel attribute writes (`asus-armoury`).
@@ -373,7 +376,7 @@ Rather than removing the async executor, maximizing Tokio's performance requires
 | **`[workspace.lints.clippy]`** | 🟢 **APPROVED** | 🔴 **P0** | Native Cargo workspace lint policy replacing `Cranky.toml`. |
 | **`cargo-husky` → `.githooks`** | 🟢 **APPROVED** | 🟠 **P1** | Native git hooks script; decouples CI from local dev build hooks. |
 | **Deprecate & Purge `asusd-user`** | ⏹️ **REOPEN / MERGE ([#310](https://github.com/OpenGamingCollective/asusctl/pull/310))** | 🟠 **P1** | Removes obsolete user daemon crate, dual services, and packaging bloat. |
-| **Udev Async Streams (`tokio-udev`) & `mio` Purge** | 🟢 **APPROVED** | 🟠 **P1** | Replaces blocking `mio` threads in `aura_manager.rs` & `start_power_monitor`; removes `mio` dependency and nested Tokio runtimes. |
+| **Udev Worker & Mailbox Channel (`mio` Purge)** | 🟢 **APPROVED** | 🟠 **P1** | Replaces blocking `mio` threads in `aura_manager.rs` & `start_power_monitor` with a sync worker thread and Tokio `mpsc` mailbox; removes `mio` and nested Tokio runtimes without adding external stream crates. |
 | **Unified Image Pipeline (`image`)** | 🔄 **PR OPEN ([#314](https://github.com/OpenGamingCollective/asusctl/pull/314))** | 🟠 **P1** | Unified PNG/APNG/GIF decoding under `image = "=0.25.9"`; purges `png_pong`, `pix`, `gif`, and `png`. |
 | **AniMe Kernel I/O Decoupling** | 🔄 **PR OPEN ([#317](https://github.com/OpenGamingCollective/asusctl/pull/317))** | 🟠 **P1** | Decouples USB HID I/O with Condvar mailbox worker thread, FIFO queue, `&AnimeDataBuffer` zero-copy proxy, frame pre-computation. |
 | **Armoury Validation & Persistence** | 🔄 **PR OPEN ([#300](https://github.com/OpenGamingCollective/asusctl/pull/300), [#301](https://github.com/OpenGamingCollective/asusctl/pull/301))** | 🟠 **P1** | Rejects invalid attribute values and simplifies JSON state serialization & boot restoration. |
