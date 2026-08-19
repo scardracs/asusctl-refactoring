@@ -112,11 +112,11 @@
     }
   },
   "issues": {
-    "320": {
-      "status": "⚠️ **ACTIVE BUG**",
+    "322": {
+      "status": "💡 **FEATURE REQUEST**",
       "resolution": "Phase 2 / 3: Upstream issue triage & investigation"
     },
-    "319": {
+    "320": {
       "status": "⚠️ **ACTIVE BUG**",
       "resolution": "Phase 2 / 3: Upstream issue triage & investigation"
     },
@@ -288,29 +288,9 @@
       "status": "💡 **FEATURE REQUEST**",
       "resolution": "Phase 2.4: Add Asus Vivobook 14 TM420UA support"
     },
-    "103": {
-      "status": "⚠️ **ACTIVE BUG**",
-      "resolution": "Phase 2.2: Validate nv_temp_target sysfs node presence and write permissions on G14 2023"
-    },
-    "100": {
-      "status": "⚠️ **ACTIVE BUG**",
-      "resolution": "Phase 2.2: Intel RAPL / MSR TDP floor unlock on Zephyrus M16 2023"
-    },
     "98": {
       "status": "💡 **FEATURE REQUEST**",
       "resolution": "Phase 2.1: Add idle inactivity timer daemon hook to turn off keyboard backlight automatically"
-    },
-    "94": {
-      "status": "⚠️ **ACTIVE BUG**",
-      "resolution": "Phase 1.1: Fix systemd unit dependency ordering (After=dbus.service) to guarantee startup"
-    },
-    "91": {
-      "status": "💡 **FEATURE REQUEST**",
-      "resolution": "Phase 2.5: Add panel_overdrive and nv_settings into per-profile config schema"
-    },
-    "89": {
-      "status": "⚠️ **ACTIVE BUG**",
-      "resolution": "Phase 3.4: Expose advanced /etc/asusd/asusd.ron settings in Slint GUI settings page"
     },
     "82": {
       "status": "💡 **FEATURE REQUEST**",

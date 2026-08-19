@@ -1,6 +1,6 @@
 # 🐛 Active Upstream Issues & Roadmap Mapping
 
-> *Last automated synchronization: 2026-08-19 06:39 UTC*
+> *Last automated synchronization: 2026-08-19 11:34 UTC*
 
 This document provides an automated classification of all **active open issues** from [`OpenGamingCollective/asusctl`](https://github.com/OpenGamingCollective/asusctl/issues).
 
@@ -39,7 +39,6 @@ Issues are categorized by subsystem and functional domain, detailing their root 
 | **[#129](https://github.com/OpenGamingCollective/asusctl/issues/129)** | GPU control over iGPU and dGPU lost, with system tray i... | `general` | ⚠️ **ACTIVE BUG** | **Phase 1.1 / 2.1: Prevent GPU tray desync by subscribing directly to udev drm event stream** |
 | **[#117](https://github.com/OpenGamingCollective/asusctl/issues/117)** | rog-control-center Charge Limit No Longer Working... | `general` | ✅ **RESOLVED UPSTREAM** | **Fixed in commit `ab1b72b6`: Charge limit sysfs path and D-Bus proxy binding updated** |
 | **[#112](https://github.com/OpenGamingCollective/asusctl/issues/112)** | Fans are not following their profiles after connecting/... | `general` | 🟢 **IN PR (#316)** | **PR #316 / Phase 2.5: Re-evaluate fan curve profile automatically upon AC/Battery transition** |
-| **[#100](https://github.com/OpenGamingCollective/asusctl/issues/100)** | CPU is heavily power limited (Zephyrus M16 2023)... | `general` | ⚠️ **ACTIVE BUG** | **Phase 2.2: Intel RAPL / MSR TDP floor unlock on Zephyrus M16 2023** |
 | **[#82](https://github.com/OpenGamingCollective/asusctl/issues/82)** | Show OSD notification on power profile change... | `general` | 💡 **FEATURE REQUEST** | **Phase 3.4: Trigger desktop OSD notifications via org.freedesktop.Notifications on profile cycle** |
 | **[#68](https://github.com/OpenGamingCollective/asusctl/issues/68)** | Add Static and BatteryLevel modes for slash lighting... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.4: Add Static and BatteryLevel modes for slash lighting controllers** |
 
@@ -58,7 +57,6 @@ Issues are categorized by subsystem and functional domain, detailing their root 
 
 | Issue # | Title | Subsystems | Status / Fix Verification | Architectural Resolution & Roadmap Link |
 | :--- | :--- | :--- | :---: | :--- |
-| **[#319](https://github.com/OpenGamingCollective/asusctl/issues/319)** | asusd SIGABRT on GA503RM — unsymbolized abort in main t... | `bug`, `asusd`, `asusd-user` | ⚠️ **ACTIVE BUG** | **Phase 2 / 3: Upstream issue triage & investigation** |
 | **[#304](https://github.com/OpenGamingCollective/asusctl/issues/304)** | [Bug]: rog-control-center panics when config file is re... | `bug`, `rog-control-center` | 🟢 **IN PR (#305)** | **PR #305 / Invariant #5: Remove `.unwrap()` in config-traits; fallback gracefully when file is read-only** |
 | **[#159](https://github.com/OpenGamingCollective/asusctl/issues/159)** | rog-control-center panics on GZ302: duplicate entry in ... | `general` | ✅ **RESOLVED UPSTREAM** | **Fixed in commit `48daeaab`: Deduplicated GZ302 entry in aura_support.ron** |
 
@@ -93,7 +91,6 @@ Issues are categorized by subsystem and functional domain, detailing their root 
 | **[#198](https://github.com/OpenGamingCollective/asusctl/issues/198)** | The "Advanced" Platform Policy Page closes when clickin... | `general` | ⚠️ **ACTIVE BUG** | **Phase 3.4 (Slint UI): Fix event bubbling in Slint TouchArea widgets across platform tuning sub-pages** |
 | **[#193](https://github.com/OpenGamingCollective/asusctl/issues/193)** | [rog-control-center] Proposal: high-fidelity ROG skin —... | `general` | 💡 **FEATURE REQUEST** | **Phase 3.4 (Slint UI): High-fidelity ROG dark/metallic theme & custom asset styling** |
 | **[#160](https://github.com/OpenGamingCollective/asusctl/issues/160)** | .deb package building script... | `general` | 💡 **FEATURE REQUEST** | **Phase 4: Maintain standardized cargo-deb workflow in .github/workflows/ and debian/ packaging** |
-| **[#89](https://github.com/OpenGamingCollective/asusctl/issues/89)** | Setting in /etc/asusd/asusd.ron not exposed in rog-cont... | `general` | ⚠️ **ACTIVE BUG** | **Phase 3.4: Expose advanced /etc/asusd/asusd.ron settings in Slint GUI settings page** |
 
 ---
 
@@ -101,15 +98,13 @@ Issues are categorized by subsystem and functional domain, detailing their root 
 
 | Issue # | Title | Subsystems | Status / Fix Verification | Architectural Resolution & Roadmap Link |
 | :--- | :--- | :--- | :---: | :--- |
+| **[#322](https://github.com/OpenGamingCollective/asusctl/issues/322)** | [Feature]: Gentoo-overlay... | `enhancement`, `asusd` | 💡 **FEATURE REQUEST** | **Phase 2 / 3: Upstream issue triage & investigation** |
 | **[#320](https://github.com/OpenGamingCollective/asusctl/issues/320)** | [Bug]: XG Mobile live enable hangs on GV301QH unless pc... | `bug`, `rog-platform`, `kernel` | ⚠️ **ACTIVE BUG** | **Phase 2 / 3: Upstream issue triage & investigation** |
 | **[#131](https://github.com/OpenGamingCollective/asusctl/issues/131)** | Proart H7604JI support... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.4 (dmi-id): Add Asus ProArt Studiobook H7604JI support** |
 | **[#130](https://github.com/OpenGamingCollective/asusctl/issues/130)** | Add Asus TUF A14 2025 FA401KM to supported devices... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.4 (dmi-id): Add Asus TUF A14 2025 FA401KM support** |
 | **[#124](https://github.com/OpenGamingCollective/asusctl/issues/124)** | PPT data collection thread... | `enhancement`, `asusd`, `rog-platform` | 💡 **FEATURE REQUEST** | **Phase 2.3 & 2.4: Continuous ingestion of verified DMI board names and TDP ranges** |
 | **[#107](https://github.com/OpenGamingCollective/asusctl/issues/107)** | Please add support to Asus Tuf Gaming A18... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.4: Add Asus TUF Gaming A18 DMI taxonomy profile** |
 | **[#106](https://github.com/OpenGamingCollective/asusctl/issues/106)** | Support Request - Asus Vivobook 14 (TM420ua) ((ryzen 55... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.4: Add Asus Vivobook 14 TM420UA support** |
-| **[#103](https://github.com/OpenGamingCollective/asusctl/issues/103)** | nv_temp_target doesnt work on g14 (2023)... | `general` | ⚠️ **ACTIVE BUG** | **Phase 2.2: Validate nv_temp_target sysfs node presence and write permissions on G14 2023** |
-| **[#94](https://github.com/OpenGamingCollective/asusctl/issues/94)** | Not booting at startup?... | `general` | ⚠️ **ACTIVE BUG** | **Phase 1.1: Fix systemd unit dependency ordering (After=dbus.service) to guarantee startup** |
-| **[#91](https://github.com/OpenGamingCollective/asusctl/issues/91)** | [Feature request] Add panel_overdrive and nv_settings t... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.5: Add panel_overdrive and nv_settings into per-profile config schema** |
 | **[#70](https://github.com/OpenGamingCollective/asusctl/issues/70)** | How to add more animations to anime matrix in rog contr... | `general` | 💡 **FEATURE REQUEST** | **Phase 3.2: AniMe Matrix custom GIF/APNG drag-and-drop animation loader in UI** |
 | **[#25](https://github.com/OpenGamingCollective/asusctl/issues/25)** | UX8406 (Zenbook Duo 2024) support... | `general` | 💡 **FEATURE REQUEST** | **Phase 2.4: Full support matrix integration for Zenbook Duo 2024 (UX8406)** |
 
