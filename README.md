@@ -123,21 +123,36 @@ Before undertaking major refactorings, empirical baseline metrics must be record
 
 ## Phase 1: Immediate User-Space Concurrency & Tooling Modernization
 
-### 1.1 State Architecture: Actor Model & Universal "Async Control, Sync Data" Decoupling
+### 1.1 State Architecture: Actor Model & Universal "Async Control, Sync Data" Mailbox Decoupling
 
 * **Current Issue**: The daemon still relies on nested asynchronous concurrent locks (`Arc<Mutex<AuraConfig>>`, `Arc<Mutex<HidRaw>>`, `Arc<Mutex<HashMap<...>>>`). In `aura_manager.rs`, structures like `Arc<Mutex<HashMap<String, Arc<Mutex<HidRaw>>>>>` cause D-Bus calls to deadlock asynchronously at startup or reload. Furthermore, synchronous USB/HID and sysfs kernel I/O performed directly inside async task loops blocks the Tokio reactor and creates latency jitter on D-Bus.
 * **Refactoring Proposal**:
-  * Implement the **"Async Control, Sync Data"** architectural pattern universally across **all daemon hardware controllers**:
-    * **AniMe Matrix (`asusd::aura_anime`, `rog-anime`)**: Prototyped and validated in [PR #317](https://github.com/OpenGamingCollective/asusctl/pull/317). Tokio handles frame scheduling and zero-copy D-Bus buffering (`&AnimeDataBuffer`); a dedicated worker thread with an `Arc<Condvar>` single-slot mailbox executes blocking USB HID transfers.
-    * **Aura Keyboard & LED Zones (`asusd::aura_laptop`, `rog-aura`)**: Tokio executes effect timers (Rainbow, Breathe, Pulse, Comet) and manages mode state; a dedicated sync worker thread receives updated color matrices and performs uninterruptible USB HID packet writes to `/dev/hidraw` or kernel LED nodes.
-    * **Fan Curves & Thermal Policies (`asusd::ctrl_fancurves`, `rog-profiles`, `rog-platform`)**: Tokio listens for D-Bus profile changes, temperature threshold streams, and power/lid events (`logind-zbus`); a dedicated sync worker applies PWM curve tables and writes to `/sys/devices/platform/asus-nb-wmi/throttle_thermal_policy`.
-    * **Armoury BIOS Attributes (`asusd::asus_armoury`, `rog-platform`)**: Tokio maintains the attribute schema registry, handles D-Bus getter/setter invocations, and broadcasts `AttributeChanged` events; a dedicated sysfs writer thread executes blocking file updates to `/sys/class/firmware_attributes/asus-armoury/attributes/`.
-    * **Slash Lighting (`asusd::aura_slash`, `rog-slash`) & Ally Backlight (`asusd::aura_scsi`, `rog-scsi`)**: Tokio controls timing and animation state; dedicated worker threads execute blocking USB HID / SCSI command sequences.
-    * **Client Tools & UI (`rog-control-center`, `asusctl`, `asusd-user`)**: Pure async IPC clients interacting via non-blocking D-Bus proxies (`zbus`) without internal blocking threads, nested Tokio runtimes, or UI freezing.
+  * Implement the **"Async Control, Sync Data" Mailbox & Worker Pattern** universally across **all daemon hardware controllers**:
+    * **1. AniMe Matrix (`asusd::aura_anime`, `rog-anime`)**: Prototyped and validated in [PR #317](https://github.com/OpenGamingCollective/asusctl/pull/317). Tokio handles frame scheduling and zero-copy D-Bus buffering (`&AnimeDataBuffer`); a dedicated worker thread with an `Arc<Condvar>` single-slot mailbox executes blocking USB HID transfers.
+    * **2. Aura Keyboard & LED Zones (`asusd::aura_laptop`, `rog-aura`, `asusd::aura_manager`)**:
+      * Replaces nested `Arc<Mutex<HashMap<String, Arc<Mutex<HidRaw>>>>>` and inline `hid.lock().await.write(...)` calls.
+      * A dedicated sync HID worker thread exclusively owns the `/dev/hidraw` handle and listens to a single-slot mailbox (`Arc<(Mutex<Option<LedMatrix>>, Condvar)>`).
+      * Tokio animation tasks (Rainbow, Breathe, Pulse, Comet) calculate matrix states and deposit pre-computed frames into the mailbox without holding lock contention over D-Bus setter calls.
+    * **3. Slash Lighting (`asusd::aura_slash`, `rog-slash`)**:
+      * Replaces `hid: Option<Arc<Mutex<HidRaw>>>` and `usb: Option<Arc<Mutex<USBRaw>>>`.
+      * A dedicated Slash Mailbox worker thread consumes brightness commands and animation packet buffers, completely decoupling USB transfer latency from D-Bus methods.
+    * **4. ROG Ally Backlight & SCSI (`asusd::aura_scsi`, `rog-scsi`)**:
+      * Replaces `device: Arc<Mutex<Device>>` and blocking raw SCSI command writes (`/dev/sg*`) inside async D-Bus handlers.
+      * Dedicated SCSI Mailbox worker thread consumes a FIFO command queue and issues uninterruptible SCSI payload blocks off the Tokio reactor.
+    * **5. Armoury BIOS Attributes & Tuning (`asusd::asus_armoury`, `rog-platform`)**:
+      * Replaces synchronous sysfs file writes (`/sys/class/firmware_attributes/asus-armoury/attributes/`) performed directly within async D-Bus setter handlers.
+      * A dedicated sysfs writer thread consumes a serialized mailbox channel (`tokio::sync::mpsc::channel<(Attribute, AttrValue)>`), guaranteeing that ACPI/kernel sysfs delays never stall D-Bus dispatchers.
+    * **6. Fan Curves & Platform Profiles (`asusd::ctrl_fancurves`, `asusd::ctrl_platform`)**:
+      * Replaces cross-referencing `Arc<Mutex<Config>>` and `Arc<Mutex<FanCurveConfig>>` locks.
+      * Synchronized profile dispatch mailbox receives thermal policy transitions and applies PWM curve tables and PPT power limits sequentially.
+    * **7. Hardware Udev Hotplug Monitoring (`asusd::aura_manager`, `start_power_monitor`)**:
+      * Dedicated sync OS thread listens on the kernel netlink udev socket and feeds a `tokio::sync::mpsc` mailbox, eliminating `mio` polling loops and nested `Runtime::new()` instances.
+    * **8. Client Tools & UI (`rog-control-center`, `asusctl`)**:
+      * Pure async IPC clients interacting via non-blocking D-Bus proxies (`zbus`) and `tokio::sync::watch` telemetry channels, with zero internal blocking threads or UI freezes.
 * **Target Benefits**:
-  * Total elimination of concurrency blocking and D-Bus deadlocks across all hardware features.
-  * Clean, predictable execution flow: zero hardware bus latency leaks into Tokio executor threads.
-  * 100% testable via mock mailbox receivers and virtual hardware channels.
+  * Total elimination of concurrency lock contention and D-Bus deadlocks across all hardware features.
+  * Clean, deterministic execution flow: zero hardware bus latency leaks into Tokio executor threads.
+  * 100% testable via mock mailbox receivers and virtual hardware channels without physical hardware.
 
 ### 1.2 Tooling Modernization: `Cranky.toml` → Native `[workspace.lints]`
 
